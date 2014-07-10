@@ -3,13 +3,13 @@ package mongo
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/tidepool-org/go-common/utilities/errors"
+	"github.com/tidepool-org/go-common/utilities/jepson"
 	"labix.org/v2/mgo"
 	"log"
 	"net"
 	"net/url"
 	"strings"
-	"tidepool.org/utilities/errors"
-	"tidepool.org/utilities/jepson"
 	"time"
 )
 

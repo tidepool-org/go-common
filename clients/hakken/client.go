@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/utilities/errors"
 	"net/http"
-	"tidepool.org/clients/disc"
-	"tidepool.org/utilities/errors"
 )
 
 type coordinatorClient struct {

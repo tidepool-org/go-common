@@ -3,10 +3,10 @@ package clients
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tidepool-org/go-common/clients/disc"
 	"log"
 	"net/http"
 	"net/url"
-	"tidepool.org/clients/disc"
 )
 
 type seagullClient struct {

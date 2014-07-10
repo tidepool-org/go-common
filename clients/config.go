@@ -1,10 +1,10 @@
 package clients
 
 import (
+	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/clients/hakken"
 	"log"
 	"net/url"
-	"tidepool.org/clients/disc"
-	"tidepool.org/clients/hakken"
 )
 
 type HostGetterConfig interface{}

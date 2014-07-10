@@ -4,13 +4,13 @@ package clients
 
 import (
 	"encoding/json"
+	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/utilities/errors"
+	"github.com/tidepool-org/go-common/utilities/jepson"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"tidepool.org/clients/disc"
-	"tidepool.org/utilities/errors"
-	"tidepool.org/utilities/jepson"
 	"time"
 )
 

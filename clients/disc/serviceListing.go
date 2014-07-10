@@ -2,9 +2,9 @@ package disc
 
 import (
 	"encoding/json"
+	"github.com/tidepool-org/go-common/utilities/jepson"
 	"net/url"
 	"strings"
-	"tidepool.org/utilities/jepson"
 )
 
 type ServiceListing struct {

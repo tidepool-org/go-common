@@ -1,11 +1,11 @@
 package hakken
 
 import (
+	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/utilities/jepson"
 	"log"
 	"net/url"
 	"sync"
-	"tidepool.org/clients/disc"
-	"tidepool.org/utilities/jepson"
 	"time"
 )
 

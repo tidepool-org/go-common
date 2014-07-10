@@ -2,7 +2,7 @@ package hakken
 
 import (
 	"github.com/tidepool-org/go-common/clients/disc"
-	"github.com/tidepool-org/go-common/utilities/jepson"
+	"github.com/tidepool-org/go-common/jepson"
 	"log"
 	"net/url"
 	"sync"

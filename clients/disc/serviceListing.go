@@ -2,7 +2,7 @@ package disc
 
 import (
 	"encoding/json"
-	"github.com/tidepool-org/go-common/utilities/jepson"
+	"github.com/tidepool-org/go-common/jepson"
 	"net/url"
 	"strings"
 )

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tidepool-org/go-common/clients/disc"
-	"github.com/tidepool-org/go-common/utilities/errors"
+	"github.com/tidepool-org/go-common/errors"
 	"net/http"
 )
 

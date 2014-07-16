@@ -1,6 +1,9 @@
 package disc
 
-import "net/url"
+import (
+	"net/url"
+	"log"
+)
 
 type HostGetter interface {
 	HostGet() []url.URL
@@ -18,6 +21,15 @@ type StaticHostGetter struct {
 
 func NewStaticHostGetter(retVal url.URL) *StaticHostGetter {
 	return &StaticHostGetter{Hosts: []url.URL{retVal}}
+}
+
+func NewStaticHostGetterFromString(urlString string) *StaticHostGetter {
+	theUrl, err := url.Parse(urlString)
+	if err != nil {
+		log.Printf("Unable to parse urlString[%s]", urlString)
+		return nil
+	}
+	return NewStaticHostGetter(*theUrl)
 }
 
 func (h *StaticHostGetter) HostGet() []url.URL {

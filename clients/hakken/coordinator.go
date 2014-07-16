@@ -35,8 +35,8 @@ func (c *Coordinator) MarshalJSON() ([]byte, error) {
 
 type coordinatorManager struct {
 	resyncClient   coordinatorClient
-	resyncInterval time.Duration
-	pollInterval   time.Duration
+	resyncTicker *time.Ticker
+	pollTicker   *time.Ticker
 	dropCooChan    chan *coordinatorClient
 
 	mut sync.Mutex
@@ -55,10 +55,10 @@ func (manager *coordinatorManager) getClient() *coordinatorClient {
 	}
 }
 
-func (manager *coordinatorManager) getClients() *[]coordinatorClient {
+func (manager *coordinatorManager) getClients() []coordinatorClient {
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
-	return &manager.clients
+	return manager.clients
 }
 
 func (manager *coordinatorManager) reportBadClient(client *coordinatorClient) {
@@ -73,36 +73,32 @@ func (manager *coordinatorManager) start() error {
 		return nil
 	}
 
-	log.Printf("Starting coordinatorManager at[%s]", manager.resyncClient.coordinator.URL.String())
+	log.Printf("Starting coordinatorManager at[%s]", manager.resyncClient.URL.String())
 	manager.stop = make(chan chan error)
 	coordinators, err := addUnknownCoordinators(nil, &manager.resyncClient)
 	if err != nil {
 		return err
 	}
 
-	manager.clients = coordinators
+	// Already have the lock, it's not reentrant, so use lock-less method
+	manager.setClientsNoLock(coordinators)
 
 	go func() {
-		resyncTimer := time.After(manager.resyncInterval)
-		pollTimer := time.After(manager.pollInterval)
-
 		for {
-			manager.mut.Lock()
-			coordinators = manager.clients
-			manager.mut.Unlock()
 			select {
-			case <-resyncTimer:
-				coordinators, _ = addUnknownCoordinators(coordinators, &manager.resyncClient)
-				manager.setCoordinators(&coordinators)
-				resyncTimer = time.After(manager.resyncInterval)
-			case <-pollTimer:
+			case <-manager.resyncTicker.C:
+				coordinators, _ := addUnknownCoordinators(manager.getClients(), &manager.resyncClient)
+				manager.setClients(coordinators)
+			case <-manager.pollTicker.C:
+				coordinators := manager.getClients()
 				for _, coo := range coordinators {
 					coordinators, err = addUnknownCoordinators(coordinators, &coo)
 					if err != nil {
-						manager.setCoordinators(removeCoordinator(coordinators, &coo))
+						log.Printf("Removing coordinator[%s], because of error[%v]", coo.String(), err)
+						coordinators = removeCoordinator(coordinators, &coo)
 					}
 				}
-				pollTimer = time.After(manager.pollInterval)
+				manager.setClients(coordinators)
 			case errChan := <-manager.stop:
 				// Empty out the dropCooChan
 				for {
@@ -116,7 +112,8 @@ func (manager *coordinatorManager) start() error {
 					}
 				}
 			case droppedCoo := <-manager.dropCooChan:
-				manager.setCoordinators(removeCoordinator(coordinators, droppedCoo))
+				clients := manager.getClients()
+				manager.setClients(removeCoordinator(clients, droppedCoo))
 			}
 		}
 	}()
@@ -142,10 +139,40 @@ func (manager *coordinatorManager) Close() error {
 	return err
 }
 
-func (manager *coordinatorManager) setCoordinators(coordinators *[]coordinatorClient) {
+func (manager *coordinatorManager) setClients(coordinators []coordinatorClient) {
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
-	manager.clients = *coordinators
+
+	log.Printf("Asked to set coordinators.  Curr[%v], new[%v]", manager.clients, coordinators)
+	manager.setClientsNoLock(coordinators)
+}
+
+func (manager *coordinatorManager) setClientsNoLock(coordinators []coordinatorClient) {
+	for _, newCoo := range coordinators {
+		found := false
+		for _, currCoo := range manager.clients {
+			if newCoo == currCoo {
+				found = true
+			}
+		}
+		if !found {
+			log.Printf("Adding coordinator[%s]", newCoo.String())
+		}
+	}
+
+	for _, currCoo := range manager.clients {
+		found := false
+		for _, newCoo := range coordinators {
+			if currCoo == newCoo {
+				found = true
+			}
+		}
+		if !found {
+			log.Printf("Removing coordinator[%s]", currCoo.String())
+		}
+	}
+
+	manager.clients = coordinators
 }
 
 func addUnknownCoordinators(coordinators []coordinatorClient, client *coordinatorClient) ([]coordinatorClient, error) {
@@ -158,7 +185,7 @@ func addUnknownCoordinators(coordinators []coordinatorClient, client *coordinato
 	for _, coo := range coos {
 		found := false
 		for _, known := range coordinators {
-			if coo == known.coordinator {
+			if coo == known.Coordinator {
 				found = true
 			}
 		}
@@ -167,22 +194,18 @@ func addUnknownCoordinators(coordinators []coordinatorClient, client *coordinato
 		}
 	}
 
-	for _, coo := range unknown {
-		log.Printf("Adding coordinator[%+v]", coo.coordinator)
-	}
-
 	return append(coordinators, unknown...), nil
 }
 
-func removeCoordinator(coordinators []coordinatorClient, toRemove *coordinatorClient) *[]coordinatorClient {
+func removeCoordinator(coordinators []coordinatorClient, toRemove *coordinatorClient) []coordinatorClient {
 	for i, coo := range coordinators {
-		if &coo == toRemove {
-			log.Printf("Removing coordinator[%+v]", coo)
-			retVal := append(coordinators[0:i], coordinators[i+1:]...)
-			return &retVal
+		if coo == *toRemove {
+			retVal := make([]coordinatorClient, 0, len(coordinators) - 1)
+			copy(retVal, coordinators[:i])
+			return append(retVal, coordinators[i+1:]...)
 		}
 	}
-	return &coordinators
+	return coordinators
 }
 
 func getOrNil(arr []coordinatorClient, i int) *coordinatorClient {

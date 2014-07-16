@@ -22,7 +22,7 @@ func (client *coordinatorClient) getCoordinators() ([]Coordinator, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, errors.Newf("Unknown response code[%s] from [%s]", res.StatusCode, url)
+		return nil, errors.Newf("Unknown response code[%d] from [%s]", res.StatusCode, url)
 	}
 
 	var retVal []Coordinator
@@ -41,7 +41,7 @@ func (client *coordinatorClient) getListings(service string) ([]disc.ServiceList
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, errors.Newf("Unknown response code[%s] from url[%s]", res.StatusCode, url)
+		return nil, errors.Newf("Unknown response code[%d] from url[%s]", res.StatusCode, url)
 	}
 
 	var retVal []disc.ServiceListing
@@ -66,7 +66,7 @@ func (client *coordinatorClient) listingHearbeat(sl *disc.ServiceListing) error 
 	defer res.Body.Close()
 
 	if res.StatusCode != 201 {
-		return errors.Newf("Unknown response code[%s] from url[%s]", res.StatusCode, url)
+		return errors.Newf("Unknown response code[%d] from url[%s]", res.StatusCode, url)
 	}
 	return nil
 }

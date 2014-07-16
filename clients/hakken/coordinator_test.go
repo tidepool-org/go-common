@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/go-common/atomics"
 	common "github.com/tidepool-org/go-common"
 	"strings"
+	"strconv"
 )
 
 func TestPoll(t *testing.T) {
@@ -20,6 +21,10 @@ func TestPoll(t *testing.T) {
 
 				if strings.Contains(retVal, "FAIL") {
 					t.Error(retVal)
+					return
+				} else if strings.Contains(retVal, "RETURN:") {
+					value, _ := strconv.Atoi(strings.Split(retVal, ":")[1])
+					res.WriteHeader(value);
 					return
 				}
 
@@ -103,6 +108,56 @@ func TestPoll(t *testing.T) {
 	if c := manager.getClients(); c == nil || len(c) != 2 {
 		t.Errorf("Expected two clients, got [%d]", len(c))
 	}
+
+	coordOneReturn.Set("RETURN:500")
+	pollTicker <- time.Now()
+
+	for count := 0; count < 10; count++ {
+		<- time.After(10 * time.Millisecond)
+		if len(manager.getClients()) == 1 {
+			break
+		}
+	}
+	if  c := manager.getClient(); c == nil {
+		t.Errorf("Expected to get a client, didn't")
+	} else if c.String() != coordTwo.URL {
+		t.Errorf("Expected to get client for coordTwo, got[%s]", c.String())
+	}
+	if c := manager.getClients(); c == nil || len(c) != 1 {
+		t.Errorf("Expected one client, got [%d]", len(c))
+	}
+
+	coordTwoReturn.Set("RETURN:500")
+	pollTicker <- time.Now()
+	for count := 0; count < 10; count++ {
+		<- time.After(10 * time.Millisecond)
+		if len(manager.getClients()) == 1 {
+			break
+		}
+	}
+	if  c := manager.getClient(); c != nil {
+		t.Errorf("Expected to NOT get a client")
+	}
+	if c := manager.getClients(); c == nil || len(c) != 0 {
+		t.Errorf("Expected zero clients, got [%d]", len(c))
+	}
+
+	resyncTicker <- time.Now()
+	for count := 0; count < 10; count++ {
+		<- time.After(10 * time.Millisecond)
+		if len(manager.getClients()) == 2 {
+			break
+		}
+	}
+	if  c := manager.getClient(); c == nil {
+		t.Errorf("Expected to get a client, didn't")
+	} else if c.String() != coordOne.URL {
+		t.Errorf("Expected to get client for coordTwo, got[%s]", c.String())
+	}
+	if c := manager.getClients(); c == nil || len(c) != 2 {
+		t.Errorf("Expected two clients, got [%d]", len(c))
+	}
+
 
 	manager.Close()
 }

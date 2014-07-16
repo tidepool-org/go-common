@@ -92,6 +92,7 @@ func (manager *coordinatorManager) start() error {
 			case <-manager.pollTicker.C:
 				coordinators := manager.getClients()
 				for _, coo := range coordinators {
+					var err error
 					coordinators, err = addUnknownCoordinators(coordinators, &coo)
 					if err != nil {
 						log.Printf("Removing coordinator[%s], because of error[%v]", coo.String(), err)
@@ -143,7 +144,6 @@ func (manager *coordinatorManager) setClients(coordinators []coordinatorClient) 
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
 
-	log.Printf("Asked to set coordinators.  Curr[%v], new[%v]", manager.clients, coordinators)
 	manager.setClientsNoLock(coordinators)
 }
 
@@ -200,7 +200,7 @@ func addUnknownCoordinators(coordinators []coordinatorClient, client *coordinato
 func removeCoordinator(coordinators []coordinatorClient, toRemove *coordinatorClient) []coordinatorClient {
 	for i, coo := range coordinators {
 		if coo == *toRemove {
-			retVal := make([]coordinatorClient, 0, len(coordinators) - 1)
+			retVal := make([]coordinatorClient, i, len(coordinators) - 1)
 			copy(retVal, coordinators[:i])
 			return append(retVal, coordinators[i+1:]...)
 		}

@@ -1,8 +1,8 @@
 package disc
 
 import (
-	"net/url"
 	"log"
+	"net/url"
 )
 
 type HostGetter interface {

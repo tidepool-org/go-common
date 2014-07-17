@@ -3,9 +3,9 @@ package clients
 import (
 	"github.com/tidepool-org/go-common/clients/disc"
 	"github.com/tidepool-org/go-common/clients/hakken"
+	"github.com/tidepool-org/go-common/clients/shoreline"
 	"log"
 	"net/url"
-	"github.com/tidepool-org/go-common/clients/shoreline"
 )
 
 type HostGetterConfig interface{}
@@ -69,5 +69,5 @@ type Config struct {
 	HakkenConfig     hakken.HakkenClientConfig `json:"hakken"`
 	GatekeeperConfig GatekeeperConfig          `json:"gatekeeper"`
 	SeagullConfig    SeagullConfig             `json:"seagull"`
-	ShorelineConfig    ShorelineConfig             `json:"userApi"`
+	ShorelineConfig  ShorelineConfig           `json:"userApi"`
 }

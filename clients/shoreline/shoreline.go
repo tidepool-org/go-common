@@ -12,18 +12,18 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 	"sync"
+	"time"
 )
 
 // UserApiClient manages the local data for a client. A client is intended to be shared among multiple
 // goroutines so it's OK to treat it as a singleton (and probably a good idea).
 type ShorelineClient struct {
-	httpClient *http.Client         // store a reference to the http client so we can reuse it
-	hostGetter disc.HostGetter      // The getter that provides the host to talk to for the client
+	httpClient *http.Client           // store a reference to the http client so we can reuse it
+	hostGetter disc.HostGetter        // The getter that provides the host to talk to for the client
 	config     *ShorelineClientConfig // Configuration for the client
 
-	mut sync.Mutex
+	mut         sync.Mutex
 	serverToken string         // stores the most recently received server token
 	closed      chan chan bool // Channel to communicate that the object has been closed
 }
@@ -49,7 +49,7 @@ type TokenData struct {
 
 type ShorelineClientBuilder struct {
 	hostGetter disc.HostGetter
-	config *ShorelineClientConfig
+	config     *ShorelineClientConfig
 	httpClient *http.Client
 }
 
@@ -108,7 +108,7 @@ func (b *ShorelineClientBuilder) Build() *ShorelineClient {
 	return &ShorelineClient{
 		hostGetter: b.hostGetter,
 		httpClient: b.httpClient,
-		config: b.config,
+		config:     b.config,
 
 		closed: make(chan chan bool),
 	}

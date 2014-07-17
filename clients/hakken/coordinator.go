@@ -34,10 +34,10 @@ func (c *Coordinator) MarshalJSON() ([]byte, error) {
 }
 
 type coordinatorManager struct {
-	resyncClient   coordinatorClient
+	resyncClient coordinatorClient
 	resyncTicker *time.Ticker
 	pollTicker   *time.Ticker
-	dropCooChan    chan *coordinatorClient
+	dropCooChan  chan *coordinatorClient
 
 	mut sync.Mutex
 
@@ -200,7 +200,7 @@ func addUnknownCoordinators(coordinators []coordinatorClient, client *coordinato
 func removeCoordinator(coordinators []coordinatorClient, toRemove *coordinatorClient) []coordinatorClient {
 	for i, coo := range coordinators {
 		if coo == *toRemove {
-			retVal := make([]coordinatorClient, i, len(coordinators) - 1)
+			retVal := make([]coordinatorClient, i, len(coordinators)-1)
 			copy(retVal, coordinators[:i])
 			return append(retVal, coordinators[i+1:]...)
 		}

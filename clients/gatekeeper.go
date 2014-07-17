@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/clients/status"
 	"github.com/tidepool-org/go-common/errors"
 	"log"
 	"net/http"
 	"net/url"
-	"github.com/tidepool-org/go-common/clients/status"
 )
 
 type gatekeeperClient struct {

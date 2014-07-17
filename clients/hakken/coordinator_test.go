@@ -1,21 +1,21 @@
 package hakken
 
 import (
+	"fmt"
+	common "github.com/tidepool-org/go-common"
+	"github.com/tidepool-org/go-common/atomics"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
-	"net/http/httptest"
-	"net/http"
-	"fmt"
-	"github.com/tidepool-org/go-common/atomics"
-	common "github.com/tidepool-org/go-common"
-	"strings"
-	"strconv"
 )
 
 func TestPoll(t *testing.T) {
 	makeServer := func(as *atomics.AtomicString) *httptest.Server {
 		return httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-			switch (req.URL.Path) {
+			switch req.URL.Path {
 			case "/v1/coordinator":
 				retVal := as.Get()
 
@@ -24,7 +24,7 @@ func TestPoll(t *testing.T) {
 					return
 				} else if strings.Contains(retVal, "RETURN:") {
 					value, _ := strconv.Atoi(strings.Split(retVal, ":")[1])
-					res.WriteHeader(value);
+					res.WriteHeader(value)
 					return
 				}
 
@@ -72,8 +72,7 @@ func TestPoll(t *testing.T) {
 	}
 	manager.start()
 
-
-	if  c := manager.getClient(); c == nil {
+	if c := manager.getClient(); c == nil {
 		t.Errorf("Expected to get a client, didn't")
 	} else if c.String() != coordOne.URL {
 		t.Errorf("Expected to get client for coordOne, got[%s]", c.String())
@@ -84,8 +83,8 @@ func TestPoll(t *testing.T) {
 
 	// Remove coordOne client
 	manager.reportBadClient(manager.getClient())
-	<- time.After(10 * time.Millisecond)
-	if  c := manager.getClient(); c == nil {
+	<-time.After(10 * time.Millisecond)
+	if c := manager.getClient(); c == nil {
 		t.Errorf("Expected to get a client, didn't")
 	} else if c.String() != coordTwo.URL {
 		t.Errorf("Expected to get client for coordTwo, got[%s]", c.String())
@@ -95,12 +94,12 @@ func TestPoll(t *testing.T) {
 	pollTicker <- time.Now()
 
 	for count := 0; count < 10; count++ {
-		<- time.After(10 * time.Millisecond)
+		<-time.After(10 * time.Millisecond)
 		if len(manager.getClients()) == 2 {
 			break
 		}
 	}
-	if  c := manager.getClient(); c == nil {
+	if c := manager.getClient(); c == nil {
 		t.Errorf("Expected to get a client, didn't")
 	} else if c.String() != coordTwo.URL {
 		t.Errorf("Expected to get client for coordTwo, got[%s]", c.String())
@@ -113,12 +112,12 @@ func TestPoll(t *testing.T) {
 	pollTicker <- time.Now()
 
 	for count := 0; count < 10; count++ {
-		<- time.After(10 * time.Millisecond)
+		<-time.After(10 * time.Millisecond)
 		if len(manager.getClients()) == 1 {
 			break
 		}
 	}
-	if  c := manager.getClient(); c == nil {
+	if c := manager.getClient(); c == nil {
 		t.Errorf("Expected to get a client, didn't")
 	} else if c.String() != coordTwo.URL {
 		t.Errorf("Expected to get client for coordTwo, got[%s]", c.String())
@@ -130,12 +129,12 @@ func TestPoll(t *testing.T) {
 	coordTwoReturn.Set("RETURN:500")
 	pollTicker <- time.Now()
 	for count := 0; count < 10; count++ {
-		<- time.After(10 * time.Millisecond)
+		<-time.After(10 * time.Millisecond)
 		if len(manager.getClients()) == 1 {
 			break
 		}
 	}
-	if  c := manager.getClient(); c != nil {
+	if c := manager.getClient(); c != nil {
 		t.Errorf("Expected to NOT get a client")
 	}
 	if c := manager.getClients(); c == nil || len(c) != 0 {
@@ -144,12 +143,12 @@ func TestPoll(t *testing.T) {
 
 	resyncTicker <- time.Now()
 	for count := 0; count < 10; count++ {
-		<- time.After(10 * time.Millisecond)
+		<-time.After(10 * time.Millisecond)
 		if len(manager.getClients()) == 2 {
 			break
 		}
 	}
-	if  c := manager.getClient(); c == nil {
+	if c := manager.getClient(); c == nil {
 		t.Errorf("Expected to get a client, didn't")
 	} else if c.String() != coordOne.URL {
 		t.Errorf("Expected to get client for coordTwo, got[%s]", c.String())
@@ -157,7 +156,6 @@ func TestPoll(t *testing.T) {
 	if c := manager.getClients(); c == nil || len(c) != 2 {
 		t.Errorf("Expected two clients, got [%d]", len(c))
 	}
-
 
 	manager.Close()
 }

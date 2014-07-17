@@ -1,12 +1,12 @@
 package shoreline
 
 import (
-	"testing"
-	"github.com/tidepool-org/go-common/clients/disc"
-	"time"
-	"net/http/httptest"
-	"net/http"
 	"fmt"
+	"github.com/tidepool-org/go-common/clients/disc"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 )
 
 const name = "test"
@@ -14,8 +14,8 @@ const secret = "howdy ho, neighbor joe"
 const token = "this is a token"
 
 func TestStart(t *testing.T) {
-	srvr := httptest.NewServer(http.HandlerFunc(func (res http.ResponseWriter, req *http.Request) {
-		switch (req.URL.Path) {
+	srvr := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.URL.Path {
 		case "/serverlogin":
 			if nam := req.Header.Get("x-tidepool-server-name"); nam != name {
 				t.Errorf("Bad value for name[%v]", nam)
@@ -33,11 +33,11 @@ func TestStart(t *testing.T) {
 	defer srvr.Close()
 
 	shorelineClient := NewShorelineClientBuilder().
-	WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
-	WithName("test").
-	WithSecret("howdy ho, neighbor joe").
-	WithTokenRefreshInterval(10 * time.Millisecond).
-	Build()
+		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
+		WithName("test").
+		WithSecret("howdy ho, neighbor joe").
+		WithTokenRefreshInterval(10 * time.Millisecond).
+		Build()
 
 	err := shorelineClient.Start()
 
@@ -48,13 +48,13 @@ func TestStart(t *testing.T) {
 		t.Errorf("Unexpected token[%s]", tok)
 	}
 
-	<- time.After(100 * time.Millisecond)
+	<-time.After(100 * time.Millisecond)
 	shorelineClient.Close()
 }
 
 func TestLogin(t *testing.T) {
-	srvr := httptest.NewServer(http.HandlerFunc(func (res http.ResponseWriter, req *http.Request) {
-		switch (req.URL.Path) {
+	srvr := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		switch req.URL.Path {
 		case "/serverlogin":
 			res.Header().Set("x-tidepool-session-token", token)
 		case "/login":
@@ -71,10 +71,10 @@ func TestLogin(t *testing.T) {
 	defer srvr.Close()
 
 	shorelineClient := NewShorelineClientBuilder().
-	WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
-	WithName("test").
-	WithSecret("howdy ho, neighbor joe").
-	Build()
+		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
+		WithName("test").
+		WithSecret("howdy ho, neighbor joe").
+		Build()
 
 	err := shorelineClient.Start()
 	if err != nil {

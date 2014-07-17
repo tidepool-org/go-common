@@ -10,4 +10,3 @@ func URLOrPanic(val string) *url.URL {
 	}
 	return retVal
 }
-

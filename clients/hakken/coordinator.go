@@ -87,7 +87,10 @@ func (manager *coordinatorManager) start() error {
 		for {
 			select {
 			case <-manager.resyncTicker.C:
-				coordinators, _ := addUnknownCoordinators(manager.getClients(), &manager.resyncClient)
+				var coordinators, err = addUnknownCoordinators(manager.getClients(), &manager.resyncClient)
+				if err != nil {
+					log.Printf("Error when resyncing. client[%v], err[%v]", manager.resyncClient, err)
+				}
 				manager.setClients(coordinators)
 			case <-manager.pollTicker.C:
 				coordinators := manager.getClients()

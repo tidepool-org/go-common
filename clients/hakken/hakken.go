@@ -75,10 +75,11 @@ func (b *HakkenClientBuilder) Build() *HakkenClient {
 	return &HakkenClient{
 		config: b.config,
 		cooMan: coordinatorManager{
-			resyncClient:   coordinatorClient{Coordinator{url.URL{Scheme: "http", Host: b.config.Host}}},
-			resyncInterval: time.Duration(b.config.ResyncInterval),
-			pollInterval:   time.Duration(b.config.PollInterval),
-			dropCooChan:    make(chan *coordinatorClient),
+			resyncClient: coordinatorClient{Coordinator{url.URL{Scheme: "http", Host: b.config.Host}}},
+			resyncTicker: time.NewTicker(time.Duration(b.config.ResyncInterval)),
+			pollTicker:   time.NewTicker(time.Duration(b.config.PollInterval)),
+			dropCooChan:  make(chan *coordinatorClient),
+			stop:         make(chan chan error),
 		},
 		stopChan: make(chan bool),
 	}
@@ -157,7 +158,7 @@ func (client *HakkenClient) Publish(sl *disc.ServiceListing) {
 			case <-client.stopChan:
 				break
 			case <-timer:
-				for _, coo := range *client.cooMan.getClients() {
+				for _, coo := range client.cooMan.getClients() {
 					coo.listingHearbeat(sl)
 				}
 				timer = time.After(time.Duration(client.config.HeartbeatInterval))

@@ -1,31 +1,34 @@
 // This is a client module to support server-side use of the Tidepool
 // service called user-api.
-package clients
+package shoreline
 
 import (
 	"encoding/json"
 	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/clients/status"
 	"github.com/tidepool-org/go-common/errors"
 	"github.com/tidepool-org/go-common/jepson"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 )
 
 // UserApiClient manages the local data for a client. A client is intended to be shared among multiple
 // goroutines so it's OK to treat it as a singleton (and probably a good idea).
-type UserApiClient struct {
-	httpClient *http.Client         // store a reference to the http client so we can reuse it
-	hostGetter disc.HostGetter      // The getter that provides the host to talk to for the client
-	config     *UserApiClientConfig // Configuration for the client
+type ShorelineClient struct {
+	httpClient *http.Client           // store a reference to the http client so we can reuse it
+	hostGetter disc.HostGetter        // The getter that provides the host to talk to for the client
+	config     *ShorelineClientConfig // Configuration for the client
 
+	mut         sync.Mutex
 	serverToken string         // stores the most recently received server token
 	closed      chan chan bool // Channel to communicate that the object has been closed
 }
 
-type UserApiClientConfig struct {
+type ShorelineClientConfig struct {
 	Name                 string          `json:"name"`                 // The name of this server for use in obtaining a server token
 	Secret               string          `json:"secret"`               // The secret used along with the name to obtain a server token
 	TokenRefreshInterval jepson.Duration `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
@@ -44,37 +47,87 @@ type TokenData struct {
 	IsServer bool   // true or false depending on whether the token was a servertoken
 }
 
-// NewApiClient constructs an api client object.
-func NewApiClient(hostGetter disc.HostGetter, config *UserApiClientConfig, httpClient *http.Client) *UserApiClient {
-	return &UserApiClient{
-		hostGetter: hostGetter,
-		config:     config,
-		httpClient: httpClient,
+type ShorelineClientBuilder struct {
+	hostGetter disc.HostGetter
+	config     *ShorelineClientConfig
+	httpClient *http.Client
+}
+
+func NewShorelineClientBuilder() *ShorelineClientBuilder {
+	return &ShorelineClientBuilder{
+		config: &ShorelineClientConfig{
+			TokenRefreshInterval: jepson.Duration(6 * time.Hour),
+		},
 	}
 }
 
-func NewUserApiConfig(name, secret string, tokenRefreshInterval jepson.Duration) *UserApiClientConfig {
-	return &UserApiClientConfig{
-		Name:                 name,
-		Secret:               secret,
-		TokenRefreshInterval: tokenRefreshInterval,
+func (b *ShorelineClientBuilder) WithHostGetter(val disc.HostGetter) *ShorelineClientBuilder {
+	b.hostGetter = val
+	return b
+}
+
+func (b *ShorelineClientBuilder) WithHttpClient(val *http.Client) *ShorelineClientBuilder {
+	b.httpClient = val
+	return b
+}
+
+func (b *ShorelineClientBuilder) WithName(val string) *ShorelineClientBuilder {
+	b.config.Name = val
+	return b
+}
+
+func (b *ShorelineClientBuilder) WithSecret(val string) *ShorelineClientBuilder {
+	b.config.Secret = val
+	return b
+}
+
+func (b *ShorelineClientBuilder) WithTokenRefreshInterval(val time.Duration) *ShorelineClientBuilder {
+	b.config.TokenRefreshInterval = jepson.Duration(val)
+	return b
+}
+
+func (b *ShorelineClientBuilder) WithConfig(val *ShorelineClientConfig) *ShorelineClientBuilder {
+	return b.WithName(val.Name).WithSecret(val.Secret).WithTokenRefreshInterval(time.Duration(val.TokenRefreshInterval))
+}
+
+func (b *ShorelineClientBuilder) Build() *ShorelineClient {
+	if b.hostGetter == nil {
+		panic("shorelineClient requires a hostGetter to be set")
+	}
+	if b.config.Name == "" {
+		panic("shorelineClient requires a name to be set")
+	}
+	if b.config.Secret == "" {
+		panic("shorelineClient requires a secret to be set")
+	}
+
+	if b.httpClient == nil {
+		b.httpClient = http.DefaultClient
+	}
+
+	return &ShorelineClient{
+		hostGetter: b.hostGetter,
+		httpClient: b.httpClient,
+		config:     b.config,
+
+		closed: make(chan chan bool),
 	}
 }
 
 // Start starts the client and makes it ready for us.  This must be done before using any of the functionality
 // that requires a server token
-func (client *UserApiClient) Start() error {
+func (client *ShorelineClient) Start() error {
 	if err := client.serverLogin(); err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			timer := time.After(time.Duration(client.config.TokenRefreshInterval) * time.Millisecond)
+			timer := time.After(time.Duration(client.config.TokenRefreshInterval))
 			select {
 			case twoWay := <-client.closed:
 				twoWay <- true
-				break
+				return
 			case <-timer:
 				if err := client.serverLogin(); err != nil {
 					log.Print("Error when refreshing server login", err)
@@ -85,18 +138,20 @@ func (client *UserApiClient) Start() error {
 	return nil
 }
 
-func (client *UserApiClient) Close() {
+func (client *ShorelineClient) Close() {
 	twoWay := make(chan bool)
 	client.closed <- twoWay
 	<-twoWay
 
+	client.mut.Lock()
+	defer client.mut.Unlock()
 	client.serverToken = ""
 }
 
 // serverLogin issues a request to the server for a login, using the stored
 // secret that was passed in on the creation of the client object. If
 // successful, it stores the returned token in ServerToken.
-func (client *UserApiClient) serverLogin() error {
+func (client *ShorelineClient) serverLogin() error {
 	host := client.getHost()
 	if host == nil {
 		return errors.New("No known user-api hosts.")
@@ -115,10 +170,15 @@ func (client *UserApiClient) serverLogin() error {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return &StatusError{NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+		return &status.StatusError{
+			status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
+	token := res.Header.Get("x-tidepool-session-token")
 
-	client.serverToken = res.Header.Get("x-tidepool-session-token")
+	client.mut.Lock()
+	defer client.mut.Unlock()
+	client.serverToken = token
+
 	return nil
 }
 
@@ -132,7 +192,7 @@ func extractUserData(r io.Reader) (*UserData, error) {
 
 // Login logs in a user with a username and password. Returns a UserData object if successful
 // and also stores the returned login token into ClientToken.
-func (client *UserApiClient) Login(username, password string) (*UserData, string, error) {
+func (client *ShorelineClient) Login(username, password string) (*UserData, string, error) {
 	host := client.getHost()
 	if host == nil {
 		return nil, "", errors.New("No known user-api hosts.")
@@ -160,13 +220,14 @@ func (client *UserApiClient) Login(username, password string) (*UserData, string
 	case 404:
 		return nil, "", nil
 	default:
-		return nil, "", &StatusError{NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+		return nil, "", &status.StatusError{
+			status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 }
 
 // CheckToken tests a token with the user-api to make sure it's current;
 // if so, it returns the data encoded in the token.
-func (client *UserApiClient) CheckToken(token string) *TokenData {
+func (client *ShorelineClient) CheckToken(token string) *TokenData {
 	host := client.getHost()
 	if host == nil {
 		return nil
@@ -199,11 +260,14 @@ func (client *UserApiClient) CheckToken(token string) *TokenData {
 	}
 }
 
-func (client *UserApiClient) TokenProvide() string {
+func (client *ShorelineClient) TokenProvide() string {
+	client.mut.Lock()
+	defer client.mut.Unlock()
+
 	return client.serverToken
 }
 
-func (client *UserApiClient) getHost() *url.URL {
+func (client *ShorelineClient) getHost() *url.URL {
 	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
 		cpy := new(url.URL)
 		*cpy = hostArr[0]

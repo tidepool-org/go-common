@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/clients/status"
 	"github.com/tidepool-org/go-common/errors"
 	"log"
 	"net/http"
@@ -42,15 +43,17 @@ func (b *gatekeeperClientBuilder) WithTokenProvider(tokenProvider TokenProvider)
 }
 
 func (b *gatekeeperClientBuilder) Build() *gatekeeperClient {
-	if b.httpClient == nil {
-		panic("gatekeeperClient requires an httpClient to be set")
-	}
 	if b.hostGetter == nil {
 		panic("gatekeeperClient requires a hostGetter to be set")
 	}
 	if b.tokenProvider == nil {
 		panic("gatekeeperClient requires a tokenProvider to be set")
 	}
+
+	if b.httpClient == nil {
+		b.httpClient = http.DefaultClient
+	}
+
 	return &gatekeeperClient{
 		httpClient:    b.httpClient,
 		hostGetter:    b.hostGetter,
@@ -81,13 +84,13 @@ func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]
 		retVal := make(map[string]Permissions)
 		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
 			log.Println(err)
-			return nil, &StatusError{NewStatus(500, "Unable to parse response.")}
+			return nil, &status.StatusError{status.NewStatus(500, "Unable to parse response.")}
 		}
 		return retVal, nil
 	} else if res.StatusCode == 404 {
 		return nil, nil
 	} else {
-		return nil, &StatusError{NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+		return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 
 }

@@ -10,11 +10,11 @@ import (
 )
 
 type coordinatorClient struct {
-	coordinator Coordinator
+	Coordinator
 }
 
 func (client *coordinatorClient) getCoordinators() ([]Coordinator, error) {
-	url := fmt.Sprintf("%s/v1/coordinator", client.coordinator.URL.String())
+	url := fmt.Sprintf("%s/v1/coordinator", client.URL.String())
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Problem when looking up coordinators[%s].", url)
@@ -22,7 +22,7 @@ func (client *coordinatorClient) getCoordinators() ([]Coordinator, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, errors.Newf("Unknown response code[%s] from [%s]", res.StatusCode, url)
+		return nil, errors.Newf("Unknown response code[%d] from [%s]", res.StatusCode, url)
 	}
 
 	var retVal []Coordinator
@@ -33,7 +33,7 @@ func (client *coordinatorClient) getCoordinators() ([]Coordinator, error) {
 }
 
 func (client *coordinatorClient) getListings(service string) ([]disc.ServiceListing, error) {
-	url := fmt.Sprintf("%s/v1/listings/%s", client.coordinator.URL.String(), service)
+	url := fmt.Sprintf("%s/v1/listings/%s", client.URL.String(), service)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Problem when looking up listings at url[%s].", url)
@@ -41,7 +41,7 @@ func (client *coordinatorClient) getListings(service string) ([]disc.ServiceList
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return nil, errors.Newf("Unknown response code[%s] from url[%s]", res.StatusCode, url)
+		return nil, errors.Newf("Unknown response code[%d] from url[%s]", res.StatusCode, url)
 	}
 
 	var retVal []disc.ServiceListing
@@ -52,7 +52,7 @@ func (client *coordinatorClient) getListings(service string) ([]disc.ServiceList
 }
 
 func (client *coordinatorClient) listingHearbeat(sl *disc.ServiceListing) error {
-	url := fmt.Sprintf("%s/v1/listings?heartbeat=true", client.coordinator.URL.String())
+	url := fmt.Sprintf("%s/v1/listings?heartbeat=true", client.URL.String())
 
 	marshaled, err := json.Marshal(sl)
 	if err != nil {
@@ -66,7 +66,7 @@ func (client *coordinatorClient) listingHearbeat(sl *disc.ServiceListing) error 
 	defer res.Body.Close()
 
 	if res.StatusCode != 201 {
-		return errors.Newf("Unknown response code[%s] from url[%s]", res.StatusCode, url)
+		return errors.Newf("Unknown response code[%d] from url[%s]", res.StatusCode, url)
 	}
 	return nil
 }

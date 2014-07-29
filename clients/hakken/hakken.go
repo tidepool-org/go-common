@@ -78,7 +78,7 @@ func (b *HakkenClientBuilder) Build() *HakkenClient {
 			resyncClient: coordinatorClient{Coordinator{url.URL{Scheme: "http", Host: b.config.Host}}},
 			resyncTicker: time.NewTicker(time.Duration(b.config.ResyncInterval)),
 			pollTicker:   time.NewTicker(time.Duration(b.config.PollInterval)),
-			dropCooChan:  make(chan *coordinatorClient)
+			dropCooChan:  make(chan *coordinatorClient),
 		},
 		stopChan: make(chan bool),
 	}

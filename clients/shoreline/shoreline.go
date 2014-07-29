@@ -118,7 +118,7 @@ func (b *ShorelineClientBuilder) Build() *ShorelineClient {
 // that requires a server token
 func (client *ShorelineClient) Start() error {
 	if err := client.serverLogin(); err != nil {
-		return err
+		log.Printf("Problem with initial server token acquisition, [%v]", err)
 	}
 
 	go func() {

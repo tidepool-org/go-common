@@ -78,7 +78,7 @@ func (manager *coordinatorManager) start() error {
 	manager.stop = make(chan chan error)
 	coordinators, err := addUnknownCoordinators(nil, &manager.resyncClient)
 	if err != nil {
-		return err
+		log.Printf("Problem with finding initial coordinators, [%v]", err)
 	}
 
 	// Already have the lock, it's not reentrant, so use lock-less method

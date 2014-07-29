@@ -17,7 +17,7 @@ func (client *coordinatorClient) getCoordinators() ([]Coordinator, error) {
 	url := fmt.Sprintf("%s/v1/coordinator", client.URL.String())
 	res, err := http.Get(url)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Problem when looking up coordinators[%s].", url)
+		return nil, errors.Wrapf(err, "Problem when looking up coordinators[%s]", url)
 	}
 	defer res.Body.Close()
 
@@ -36,7 +36,7 @@ func (client *coordinatorClient) getListings(service string) ([]disc.ServiceList
 	url := fmt.Sprintf("%s/v1/listings/%s", client.URL.String(), service)
 	res, err := http.Get(url)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Problem when looking up listings at url[%s].", url)
+		return nil, errors.Wrapf(err, "Problem when looking up listings at url[%s]", url)
 	}
 	defer res.Body.Close()
 
@@ -61,7 +61,7 @@ func (client *coordinatorClient) listingHearbeat(sl *disc.ServiceListing) error 
 
 	res, err := http.Post(url, "application/json", bytes.NewReader(marshaled))
 	if err != nil {
-		return errors.Wrapf(err, "Problem when updating heartbeat for service[%s] at [%s].", sl.Service, url)
+		return errors.Wrapf(err, "Problem when updating heartbeat for service[%s] at [%s]", sl.Service, url)
 	}
 	defer res.Body.Close()
 

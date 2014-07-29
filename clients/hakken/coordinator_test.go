@@ -157,5 +157,7 @@ func TestPoll(t *testing.T) {
 		t.Errorf("Expected two clients, got [%d]", len(c))
 	}
 
-	manager.Close()
+	if err := manager.Close(); err != nil {
+		t.Errorf("Error when closing manager: %s", err)
+	}
 }

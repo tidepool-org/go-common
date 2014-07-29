@@ -2,6 +2,7 @@ package hakken
 
 import (
 	"encoding/json"
+	"github.com/tidepool-org/go-common/errors"
 	"log"
 	"net/url"
 	"sync"
@@ -111,7 +112,9 @@ func (manager *coordinatorManager) start() error {
 						// Do nothing
 					default:
 						// Be done
-						errChan <- nil
+						if errChan != nil {
+							errChan <- nil
+						}
 						return
 					}
 				}
@@ -129,18 +132,25 @@ func (manager *coordinatorManager) Close() error {
 	manager.mut.Lock()
 	defer manager.mut.Unlock()
 
+	log.Printf("Closing coordinatorManager at[%s]", manager.resyncClient.URL.String())
 	if manager.stop == nil {
 		return nil
 	}
 
 	errChan := make(chan error)
-	manager.stop <- errChan
+	select {
+	case manager.stop <- errChan:
+		err := <-errChan
 
-	err := <-errChan
-
-	manager.stop = nil
-	manager.clients = nil
-	return err
+		manager.stop = nil
+		manager.clients = nil
+		return err
+	case <-time.After(5 * time.Second):
+		close(manager.stop)
+		manager.stop = nil
+		manager.clients = nil
+		return errors.Newf("coordinatorManager[%s].Close() timed out", manager.resyncClient.URL.String())
+	}
 }
 
 func (manager *coordinatorManager) setClients(coordinators []coordinatorClient) {

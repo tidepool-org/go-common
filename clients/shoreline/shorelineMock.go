@@ -9,6 +9,16 @@ type ShorelineMockClient struct {
 	serverToken string
 }
 
+/*
+ 	Start() error
+	Close()
+	serverLogin() error
+	Login(username, password string) (*UserData, string, error)
+	CheckToken(token string) *TokenData
+	TokenProvide() string
+	getHost() *url.URL
+*/
+
 func (client *ShorelineMockClient) Start() error {
 	log.Println("Started mock shoreline client")
 	return nil

@@ -16,6 +16,17 @@ import (
 	"time"
 )
 
+//Generic client interface that we will implement and mock
+type Client interface {
+	Start() error
+	Close()
+	serverLogin() error
+	Login(username, password string) (*UserData, string, error)
+	CheckToken(token string) *TokenData
+	TokenProvide() string
+	getHost() *url.URL
+}
+
 // UserApiClient manages the local data for a client. A client is intended to be shared among multiple
 // goroutines so it's OK to treat it as a singleton (and probably a good idea).
 type ShorelineClient struct {

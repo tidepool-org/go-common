@@ -1,12 +1,7 @@
 package shoreline
 
 import (
-	"fmt"
-	"github.com/tidepool-org/go-common/clients/disc"
-	"net/http"
-	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 const token = "this is a token"

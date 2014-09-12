@@ -8,7 +8,7 @@ func TestMock(t *testing.T) {
 
 	const TOKEN_MOCK = "this is a token"
 
-	client := &ShorelineMockClient{serverToken: TOKEN_MOCK}
+	client := NewMock(TOKEN_MOCK)
 
 	if err := client.Start(); err != nil {
 		t.Errorf("Failed start with error[%v]", err)

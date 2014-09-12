@@ -6,18 +6,12 @@ import (
 )
 
 type ShorelineMockClient struct {
-	serverToken string
+	ServerToken string
 }
 
-/*
- 	Start() error
-	Close()
-	serverLogin() error
-	Login(username, password string) (*UserData, string, error)
-	CheckToken(token string) *TokenData
-	TokenProvide() string
-	getHost() *url.URL
-*/
+func NewMock(token string) *ShorelineMockClient {
+	return &ShorelineMockClient{ServerToken: token}
+}
 
 func (client *ShorelineMockClient) Start() error {
 	log.Println("Started mock shoreline client")
@@ -29,12 +23,12 @@ func (client *ShorelineMockClient) Close() {
 }
 
 func (client *ShorelineMockClient) serverLogin() error {
-	client.serverToken = "a.mock.token"
+	client.ServerToken = "a.mock.token"
 	return nil
 }
 
 func (client *ShorelineMockClient) Login(username, password string) (*UserData, string, error) {
-	return &UserData{UserID: "123.456.789", UserName: username, Emails: []string{username}}, client.serverToken, nil
+	return &UserData{UserID: "123.456.789", UserName: username, Emails: []string{username}}, client.ServerToken, nil
 }
 
 func (client *ShorelineMockClient) CheckToken(token string) *TokenData {
@@ -42,7 +36,7 @@ func (client *ShorelineMockClient) CheckToken(token string) *TokenData {
 }
 
 func (client *ShorelineMockClient) TokenProvide() string {
-	return client.serverToken
+	return client.ServerToken
 }
 
 func (client *ShorelineMockClient) getHost() *url.URL {

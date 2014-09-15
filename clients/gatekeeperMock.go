@@ -13,10 +13,10 @@ type (
 	}
 )
 
-func NewGatekeeperMock(permissonsToReturn map[string]Permissions, hostToReturn *url.URL) {
+func NewGatekeeperMock(permissonsToReturn map[string]Permissions, hostToReturn *url.URL) *gatekeeperMock {
 	return &gatekeeperClient{
 		expectedPermissons: permissonsToReturn,
-		hostToReturn:       hostToReturn,
+		expectedHost:       hostToReturn,
 	}
 }
 

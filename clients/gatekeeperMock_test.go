@@ -12,8 +12,7 @@ func TestGatekeeperMock(t *testing.T) {
 	mockUrl, _ := url.Parse("http://something.org/search?q=yay")
 	permissonsToReturn := make(map[string]Permissions)
 
-	permissonsToReturn["root"] = USERID
-	permissonsToReturn["view"] = USERID
+	permissonsToReturn["root"] = string{USERID}
 
 	gatekeeperMock := NewGatekeeperMock(permissonsToReturn, mockUrl)
 

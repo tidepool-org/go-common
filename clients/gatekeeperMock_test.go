@@ -11,17 +11,21 @@ func TestGatekeeperMock(t *testing.T) {
 
 	mockUrl, _ := url.Parse("http://something.org/search?q=yay")
 	permissonsToReturn := make(map[string]Permissions)
+	p := make(Permissions)
 
-	permissonsToReturn["root"] = string{USERID}
+	p["userid"] = USERID
+
+	permissonsToReturn["root"] = p
 
 	gatekeeperMock := NewGatekeeperMock(permissonsToReturn, mockUrl)
 
 	if perms, err := gatekeeperMock.UserInGroup(USERID, GROUPID); err != nil {
 		t.Fatal("No error should be returned")
 	} else {
-		if perms != mockPermssions {
-			t.Fatalf("Perms where [%v] but expected [%v]", perms, mockPermssions)
+		if perms == nil {
+			t.Fatalf("Perms where [%v] but expected [%v]", perms, permissonsToReturn)
 		}
+		t.Logf("Perms where [%v] given [%v]", perms, permissonsToReturn)
 	}
 
 	if host := gatekeeperMock.getHost(); host != mockUrl {

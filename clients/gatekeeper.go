@@ -13,7 +13,7 @@ import (
 
 type (
 	//Inteface so that we can mock gatekeeperClient for tests
-	gatekeeperInterface interface {
+	Gatekeeper interface {
 		UserInGroup(userID, groupID string) (map[string]Permissions, error)
 		getHost() *url.URL
 	}

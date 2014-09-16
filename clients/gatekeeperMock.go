@@ -8,26 +8,26 @@ import (
 
 type (
 	gatekeeperMock struct {
-		ExpectedPermissons map[string]Permissions //what the mock will return for UserInGroup
-		ExpectedHost       *url.URL               //what the mock will return for getHost
+		expectedPermissons map[string]Permissions //what the mock will return for UserInGroup
+		expectedHost       *url.URL               //what the mock will return for getHost
 	}
 )
 
 func NewGatekeeperMock(permissonsToReturn map[string]Permissions, hostToReturn *url.URL) *gatekeeperMock {
-	return &gatekeeperClient{
-		ExpectedPermissons: permissonsToReturn,
-		ExpectedHost:       hostToReturn,
+	return &gatekeeperMock{
+		expectedPermissons: permissonsToReturn,
+		expectedHost:       hostToReturn,
 	}
 }
 
 func (mock *gatekeeperMock) UserInGroup(userID, groupID string) (map[string]Permissions, error) {
 
-	if mock.ExpectedPermissons == nil {
+	if mock.expectedPermissons == nil {
 		return nil, &status.StatusError{status.NewStatus(500, "Unable to parse response.")}
 	}
-	return mock.ExpectedPermissons, nil
+	return mock.expectedPermissons, nil
 }
 
 func (mock *gatekeeperMock) getHost() *url.URL {
-	return mock.ExpectedHost
+	return mock.expectedHost
 }

@@ -1,7 +1,10 @@
 package highwater
 
 import (
+	"bytes"
+	"encoding/gob"
 	"github.com/tidepool-org/go-common/clients/disc"
+	"log"
 	"net/http"
 	"net/url"
 )
@@ -27,8 +30,9 @@ type HighwaterClientBuilder struct {
 }
 
 type HighwaterClientConfig struct {
-	Name   string `json:"name"`   // The name of this server for use in obtaining a server token
-	Secret string `json:"secret"` // The secret used along with the name to obtain a server token
+	Name           string `json:"name"` // The name of this server for use in obtaining a server token
+	MetricsSource  string `json:"metricsSource"`
+	MetricsVersion string `json:"metricsVersion"`
 }
 
 func NewHighwaterClientBuilder() *HighwaterClientBuilder {
@@ -52,13 +56,18 @@ func (b *HighwaterClientBuilder) WithName(val string) *HighwaterClientBuilder {
 	return b
 }
 
-func (b *HighwaterClientBuilder) WithSecret(val string) *HighwaterClientBuilder {
-	b.config.Secret = val
+func (b *HighwaterClientBuilder) WithSource(val string) *HighwaterClientBuilder {
+	b.config.MetricsSource = val
+	return b
+}
+
+func (b *HighwaterClientBuilder) WithVersion(val string) *HighwaterClientBuilder {
+	b.config.MetricsVersion = val
 	return b
 }
 
 func (b *HighwaterClientBuilder) WithConfig(val *HighwaterClientConfig) *HighwaterClientBuilder {
-	return b.WithName(val.Name).WithSecret(val.Secret)
+	return b.WithName(val.Name).WithSource(val.MetricsSource).WithVersion(val.MetricsVersion)
 }
 
 func (b *HighwaterClientBuilder) Build() *HighwaterClient {
@@ -68,8 +77,12 @@ func (b *HighwaterClientBuilder) Build() *HighwaterClient {
 	if b.config.Name == "" {
 		panic("HighwaterClient requires a name to be set")
 	}
-	if b.config.Secret == "" {
-		panic("HighwaterClient requires a secret to be set")
+	if b.config.MetricsSource == "" {
+		panic("HighwaterClient requires a source to be set")
+	}
+
+	if b.config.MetricsVersion == "" {
+		panic("HighwaterClient requires a version to be set")
 	}
 
 	if b.httpClient == nil {
@@ -93,14 +106,78 @@ func (client *HighwaterClient) getHost() *url.URL {
 	}
 }
 
+func (client *HighwaterClient) adjustEventName(name string) string {
+	//TODO: var metricsSource = config.metricsSource.replace(/-/g, ' ') + ' - ';
+	return client.config.MetricsSource + name
+}
+
+func (client *HighwaterClient) adjustEventParams(params map[string]string) []byte {
+	params["sourceVersion"] = client.config.MetricsVersion
+
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(params); err != nil {
+		log.Println("Error adjustEventParams ", err)
+		return nil
+	}
+	return buf.Bytes()
+}
+
 func (client *HighwaterClient) postServer(eventName, token string, params map[string]string) {
+
+	host := client.getHost()
+	if host == nil {
+		log.Println("No known highwater hosts.")
+		return
+	}
+
+	host.Path += "/server/" + client.config.Name + "/" + client.adjustEventName(eventName)
+
+	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+
+	req.Header.Add("x-tidepool-session-token", token)
+
+	if _, err := client.httpClient.Do(req); err != nil {
+		log.Println("Error doing postServer ", err)
+	}
+
 	return
 }
 
 func (client *HighwaterClient) postThisUser(eventName, token string, params map[string]string) {
+	host := client.getHost()
+	if host == nil {
+		log.Println("No known highwater hosts.")
+		return
+	}
+
+	host.Path += "/thisuser/" + client.adjustEventName(eventName)
+
+	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	req.Header.Add("x-tidepool-session-token", token)
+
+	if _, err := client.httpClient.Do(req); err != nil {
+		log.Println("Error doing postThisUser ", err)
+	}
+
 	return
 }
 
 func (client *HighwaterClient) postWithUser(userId, eventName, token string, params map[string]string) {
+	host := client.getHost()
+	if host == nil {
+		log.Println("No known highwater hosts.")
+		return
+	}
+
+	host.Path += "/user/" + userId + "/" + client.adjustEventName(eventName)
+
+	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	req.Header.Add("x-tidepool-session-token", token)
+
+	if _, err := client.httpClient.Do(req); err != nil {
+		log.Println("Error doing postWithUser ", err)
+	}
+
 	return
 }

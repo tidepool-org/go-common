@@ -14,7 +14,6 @@ type Client interface {
 	postServer(eventName, token string, params map[string]string)
 	postThisUser(eventName, token string, params map[string]string)
 	postWithUser(userId, eventName, token string, params map[string]string)
-	getHost() *url.URL
 }
 
 type HighwaterClient struct {

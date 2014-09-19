@@ -11,9 +11,9 @@ import (
 
 //Generic client interface that we will implement and mock
 type Client interface {
-	postServer(eventName, token string, params map[string]string)
-	postThisUser(eventName, token string, params map[string]string)
-	postWithUser(userId, eventName, token string, params map[string]string)
+	PostServer(eventName, token string, params map[string]string)
+	PostThisUser(eventName, token string, params map[string]string)
+	PostWithUser(userId, eventName, token string, params map[string]string)
 }
 
 type HighwaterClient struct {
@@ -122,7 +122,7 @@ func (client *HighwaterClient) adjustEventParams(params map[string]string) []byt
 	return buf.Bytes()
 }
 
-func (client *HighwaterClient) postServer(eventName, token string, params map[string]string) {
+func (client *HighwaterClient) PostServer(eventName, token string, params map[string]string) {
 
 	host := client.getHost()
 	if host == nil {
@@ -143,7 +143,7 @@ func (client *HighwaterClient) postServer(eventName, token string, params map[st
 	return
 }
 
-func (client *HighwaterClient) postThisUser(eventName, token string, params map[string]string) {
+func (client *HighwaterClient) PostThisUser(eventName, token string, params map[string]string) {
 	host := client.getHost()
 	if host == nil {
 		log.Println("No known highwater hosts.")
@@ -162,7 +162,7 @@ func (client *HighwaterClient) postThisUser(eventName, token string, params map[
 	return
 }
 
-func (client *HighwaterClient) postWithUser(userId, eventName, token string, params map[string]string) {
+func (client *HighwaterClient) PostWithUser(userId, eventName, token string, params map[string]string) {
 	host := client.getHost()
 	if host == nil {
 		log.Println("No known highwater hosts.")

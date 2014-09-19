@@ -20,11 +20,11 @@ func TestMock(t *testing.T) {
 
 	client := NewMock()
 
-	client.postServer(EVENT_NAME, TOKEN, p)
+	client.PostServer(EVENT_NAME, TOKEN, p)
 
-	client.postThisUser(EVENT_NAME, TOKEN, p)
+	client.PostThisUser(EVENT_NAME, TOKEN, p)
 
-	client.postWithUser(USERID, EVENT_NAME, TOKEN, p)
+	client.PostWithUser(USERID, EVENT_NAME, TOKEN, p)
 }
 
 //log.Panic is called when not all required args are passed.
@@ -45,11 +45,11 @@ func TestMock_Fails(t *testing.T) {
 
 	client := NewMock()
 
-	client.postServer("", TOKEN, p)
+	client.PostServer("", TOKEN, p)
 
-	client.postThisUser(EVENT_NAME, "", p)
+	client.PostThisUser(EVENT_NAME, "", p)
 
-	client.postWithUser("", EVENT_NAME, TOKEN, p)
+	client.PostWithUser("", EVENT_NAME, TOKEN, p)
 
-	client.postWithUser("", EVENT_NAME, TOKEN, nil)
+	client.PostWithUser("", EVENT_NAME, TOKEN, nil)
 }

@@ -11,17 +11,27 @@ import (
 	"net/url"
 )
 
-type gatekeeperClient struct {
-	httpClient    *http.Client    // store a reference to the http client so we can reuse it
-	hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
-	tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
-}
+type (
+	//Inteface so that we can mock gatekeeperClient for tests
+	Gatekeeper interface {
+		UserInGroup(userID, groupID string) (map[string]Permissions, error)
+		getHost() *url.URL
+	}
 
-type gatekeeperClientBuilder struct {
-	httpClient    *http.Client    // store a reference to the http client so we can reuse it
-	hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
-	tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
-}
+	gatekeeperClient struct {
+		httpClient    *http.Client    // store a reference to the http client so we can reuse it
+		hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
+		tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
+	}
+
+	gatekeeperClientBuilder struct {
+		httpClient    *http.Client    // store a reference to the http client so we can reuse it
+		hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
+		tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
+	}
+
+	Permissions map[string]interface{}
+)
 
 func NewGatekeeperClientBuilder() *gatekeeperClientBuilder {
 	return &gatekeeperClientBuilder{}
@@ -60,8 +70,6 @@ func (b *gatekeeperClientBuilder) Build() *gatekeeperClient {
 		tokenProvider: b.tokenProvider,
 	}
 }
-
-type Permissions map[string]interface{}
 
 func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]Permissions, error) {
 	host := client.getHost()

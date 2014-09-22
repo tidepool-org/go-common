@@ -15,6 +15,7 @@ type (
 	//Inteface so that we can mock gatekeeperClient for tests
 	Gatekeeper interface {
 		UserInGroup(userID, groupID string) (map[string]Permissions, error)
+		SetPermissions(userID, groupID string, permissions map[string]Permissions) (map[string]Permissions, error)
 		getHost() *url.URL
 	}
 
@@ -101,6 +102,48 @@ func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]
 		return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 
+}
+
+func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissions map[string]Permissions) (map[string]Permissions, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known gatekeeper hosts")
+	}
+	host.Path += fmt.Sprintf("access/%s/%s", groupID, userID)
+
+	req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(encodePermissions(permissions)))
+	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
+
+	log.Println(req)
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == 200 {
+		retVal := make(map[string]Permissions)
+		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
+			log.Println(err)
+			return nil, &status.StatusError{status.NewStatus(500, "Unable to parse response.")}
+		}
+		return retVal, nil
+	} else if res.StatusCode == 404 {
+		return nil, nil
+	} else {
+		return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+	}
+
+}
+
+func encodePermissions(permissions map[string]Permissions) []byte {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(permissions); err != nil {
+		log.Println("Error encodePermissions ", err)
+		return nil
+	}
+	return buf.Bytes()
 }
 
 func (client *gatekeeperClient) getHost() *url.URL {

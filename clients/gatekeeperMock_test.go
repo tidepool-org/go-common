@@ -32,6 +32,15 @@ func TestGatekeeperMock(t *testing.T) {
 		t.Fatalf("Host was [%v] but expected [%v]", host, mockUrl)
 	}
 
+	if perms, err := gatekeeperMock.SetPermissions(USERID, GROUPID, permissonsToReturn); err != nil {
+		t.Fatal("No error should be returned")
+	} else {
+		if perms == nil {
+			t.Fatalf("Perms where [%v] but expected [%v]", perms, permissonsToReturn)
+		}
+		t.Logf("Perms where [%v] given [%v]", perms, permissonsToReturn)
+	}
+
 }
 
 func TestGatekeeperMock_WhenNil(t *testing.T) {

@@ -3,10 +3,11 @@ package highwater
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/tidepool-org/go-common/clients/disc"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/tidepool-org/go-common/clients/disc"
 )
 
 //Generic client interface that we will implement and mock

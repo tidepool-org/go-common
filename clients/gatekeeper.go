@@ -18,7 +18,7 @@ type (
 	//Inteface so that we can mock gatekeeperClient for tests
 	Gatekeeper interface {
 		UserInGroup(userID, groupID string) (map[string]Permissions, error)
-		SetPermissions(userID, groupID string, permissions map[string]Permissions) (map[string]Permissions, error)
+		SetPermissions(userID, groupID string, permissions map[string]Permissions) (interface{}, error)
 		getHost() *url.URL
 	}
 
@@ -107,7 +107,7 @@ func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]
 
 }
 
-func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissions map[string]Permissions) (map[string]Permissions, error) {
+func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissions map[string]Permissions) (interface{}, error) {
 	host := client.getHost()
 	if host == nil {
 		return nil, errors.New("No known gatekeeper hosts")
@@ -125,10 +125,12 @@ func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissio
 	defer res.Body.Close()
 
 	if res.StatusCode == 200 {
-		retVal := make(map[string]Permissions)
+
+		var retVal interface{}
 		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
-			log.Println(err)
-			return nil, &status.StatusError{status.NewStatus(500, "Unable to parse response.")}
+			errMsg := fmt.Sprintf("Unable to parse response: [%s]", err.Error())
+			log.Println(errMsg)
+			return nil, &status.StatusError{status.NewStatus(500, errMsg)}
 		}
 		return retVal, nil
 	} else if res.StatusCode == 404 {

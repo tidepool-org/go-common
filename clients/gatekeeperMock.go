@@ -28,7 +28,7 @@ func (mock *gatekeeperMock) UserInGroup(userID, groupID string) (map[string]Perm
 	return mock.expectedPermissons, nil
 }
 
-func (mock *gatekeeperMock) SetPermissions(userID, groupID string, permissions map[string]Permissions) (map[string]Permissions, error) {
+func (mock *gatekeeperMock) SetPermissions(userID, groupID string, permissions map[string]Permissions) (interface{}, error) {
 	return permissions, nil
 }
 

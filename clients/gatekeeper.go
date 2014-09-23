@@ -2,7 +2,6 @@ package clients
 
 import (
 	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -18,7 +17,7 @@ type (
 	//Inteface so that we can mock gatekeeperClient for tests
 	Gatekeeper interface {
 		UserInGroup(userID, groupID string) (map[string]Permissions, error)
-		SetPermissions(userID, groupID string, permissions map[string]Permissions) (interface{}, error)
+		SetPermissions(userID, groupID string, permissions Permissions) (interface{}, error)
 		getHost() *url.URL
 	}
 
@@ -107,7 +106,7 @@ func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]
 
 }
 
-func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissions map[string]Permissions) (interface{}, error) {
+func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissions Permissions) (interface{}, error) {
 	host := client.getHost()
 	if host == nil {
 		return nil, errors.New("No known gatekeeper hosts")
@@ -141,9 +140,9 @@ func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissio
 
 }
 
-func encodePermissions(permissions map[string]Permissions) []byte {
+func encodePermissions(permissions Permissions) []byte {
 	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
+	enc := json.NewEncoder(&buf)
 	if err := enc.Encode(permissions); err != nil {
 		log.Println("Error encodePermissions ", err)
 		return nil

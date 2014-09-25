@@ -17,7 +17,7 @@ type (
 	//Inteface so that we can mock gatekeeperClient for tests
 	Gatekeeper interface {
 		UserInGroup(userID, groupID string) (map[string]Permissions, error)
-		SetPermissions(userID, groupID string, permissions Permissions) (interface{}, error)
+		SetPermissions(userID, groupID string, permissions map[string]Permissions) (interface{}, error)
 		getHost() *url.URL
 	}
 

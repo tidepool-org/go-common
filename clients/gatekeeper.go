@@ -93,6 +93,7 @@ func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]
 
 	if res.StatusCode == 200 {
 		retVal := make(map[string]Permissions)
+		log.Printf(" [%v]")
 		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
 			log.Println(err)
 			return nil, &status.StatusError{status.NewStatus(500, "Unable to parse response.")}
@@ -106,7 +107,7 @@ func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]
 
 }
 
-func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissions Permissions) (interface{}, error) {
+func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissions map[string]Permissions) (interface{}, error) {
 	host := client.getHost()
 	if host == nil {
 		return nil, errors.New("No known gatekeeper hosts")
@@ -140,7 +141,7 @@ func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissio
 
 }
 
-func encodePermissions(permissions Permissions) []byte {
+func encodePermissions(permissions map[string]Permissions) []byte {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	if err := enc.Encode(permissions); err != nil {

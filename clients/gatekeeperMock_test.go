@@ -36,7 +36,7 @@ func TestGatekeeperMock(t *testing.T) {
 		t.Fatal("No error should be returned")
 	} else {
 		if perms == nil {
-			t.Fatalf("Perms where [%v] but expected [%v]", perms, permissonsToReturn["root"])
+			t.Fatalf("Perms where [%v] but expected [%v]", perms, permissonsToReturn)
 		}
 		t.Logf("Perms where [%v] given [%v]", perms, permissonsToReturn)
 	}

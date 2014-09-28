@@ -28,8 +28,8 @@ func (mock *gatekeeperMock) UserInGroup(userID, groupID string) (map[string]Perm
 	return mock.expectedPermissons, nil
 }
 
-func (mock *gatekeeperMock) SetPermissions(userID, groupID string, permissions Permissions) (interface{}, error) {
-	return permissions, nil
+func (mock *gatekeeperMock) SetPermissions(userID, groupID string, permissions Permissions) (map[string]Permissions, error) {
+	return mock.expectedPermissons, nil
 }
 
 func (mock *gatekeeperMock) getHost() *url.URL {

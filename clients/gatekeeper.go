@@ -1,27 +1,40 @@
 package clients
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tidepool-org/go-common/clients/disc"
-	"github.com/tidepool-org/go-common/clients/status"
-	"github.com/tidepool-org/go-common/errors"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/clients/status"
+	"github.com/tidepool-org/go-common/errors"
 )
 
-type gatekeeperClient struct {
-	httpClient    *http.Client    // store a reference to the http client so we can reuse it
-	hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
-	tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
-}
+type (
+	//Inteface so that we can mock gatekeeperClient for tests
+	Gatekeeper interface {
+		UserInGroup(userID, groupID string) (map[string]Permissions, error)
+		SetPermissions(userID, groupID string, permissions Permissions) (map[string]Permissions, error)
+		getHost() *url.URL
+	}
 
-type gatekeeperClientBuilder struct {
-	httpClient    *http.Client    // store a reference to the http client so we can reuse it
-	hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
-	tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
-}
+	gatekeeperClient struct {
+		httpClient    *http.Client    // store a reference to the http client so we can reuse it
+		hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
+		tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
+	}
+
+	gatekeeperClientBuilder struct {
+		httpClient    *http.Client    // store a reference to the http client so we can reuse it
+		hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
+		tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
+	}
+
+	Permissions map[string]interface{}
+)
 
 func NewGatekeeperClientBuilder() *gatekeeperClientBuilder {
 	return &gatekeeperClientBuilder{}
@@ -61,8 +74,6 @@ func (b *gatekeeperClientBuilder) Build() *gatekeeperClient {
 	}
 }
 
-type Permissions map[string]interface{}
-
 func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]Permissions, error) {
 	host := client.getHost()
 	if host == nil {
@@ -82,9 +93,10 @@ func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]
 
 	if res.StatusCode == 200 {
 		retVal := make(map[string]Permissions)
+		log.Printf(" [%v]")
 		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
 			log.Println(err)
-			return nil, &status.StatusError{status.NewStatus(500, "Unable to parse response.")}
+			return nil, &status.StatusError{status.NewStatus(500, "UserInGroup Unable to parse response.")}
 		}
 		return retVal, nil
 	} else if res.StatusCode == 404 {
@@ -93,6 +105,43 @@ func (client *gatekeeperClient) UserInGroup(userID, groupID string) (map[string]
 		return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 
+}
+
+func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissions Permissions) (map[string]Permissions, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known gatekeeper hosts")
+	}
+	host.Path += fmt.Sprintf("access/%s/%s", groupID, userID)
+
+	if jsonPerms, err := json.Marshal(permissions); err != nil {
+		log.Println(err)
+		return nil, &status.StatusError{status.NewStatusf(http.StatusInternalServerError, "Error marshaling the permissons [%s]", err)}
+	} else {
+		req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(jsonPerms))
+		req.Header.Set("content-type", "application/json")
+		req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
+
+		res, err := client.httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode == 200 {
+
+			retVal := make(map[string]Permissions)
+			if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
+				log.Printf("SetPermissions: Unable to parse response: [%s]", err.Error())
+				return nil, &status.StatusError{status.NewStatus(500, "SetPermissions: Unable to parse response:")}
+			}
+			return retVal, nil
+		} else if res.StatusCode == 404 {
+			return nil, nil
+		} else {
+			return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+		}
+	}
 }
 
 func (client *gatekeeperClient) getHost() *url.URL {

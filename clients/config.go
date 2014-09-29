@@ -3,6 +3,7 @@ package clients
 import (
 	"github.com/tidepool-org/go-common/clients/disc"
 	"github.com/tidepool-org/go-common/clients/hakken"
+	"github.com/tidepool-org/go-common/clients/highwater"
 	"github.com/tidepool-org/go-common/clients/shoreline"
 	"log"
 	"net/url"
@@ -65,9 +66,19 @@ func (uac *ShorelineConfig) ToHostGetter(discovery disc.Discovery) disc.HostGett
 	return ToHostGetter("user-api", &uac.HostGetter, discovery)
 }
 
+type HighwaterConfig struct {
+	highwater.HighwaterClientConfig
+	HostGetter HostGetterConfig `json:"serviceSpec"`
+}
+
+func (hc *HighwaterConfig) ToHostGetter(discovery disc.Discovery) disc.HostGetter {
+	return ToHostGetter("highwater", &hc.HostGetter, discovery)
+}
+
 type Config struct {
 	HakkenConfig     hakken.HakkenClientConfig `json:"hakken"`
 	GatekeeperConfig GatekeeperConfig          `json:"gatekeeper"`
 	SeagullConfig    SeagullConfig             `json:"seagull"`
 	ShorelineConfig  ShorelineConfig           `json:"shoreline"`
+	HighwaterConfig  HighwaterConfig           `json:"highwater"`
 }

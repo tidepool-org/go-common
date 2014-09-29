@@ -114,40 +114,34 @@ func (client *gatekeeperClient) SetPermissions(userID, groupID string, permissio
 	}
 	host.Path += fmt.Sprintf("access/%s/%s", groupID, userID)
 
-	req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(encodePermissions(permissions)))
-	req.Header.Set("content-type", "application/json")
-	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
-
-	res, err := client.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode == 200 {
-
-		retVal := make(map[string]Permissions)
-		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
-			log.Printf("SetPermissions: Unable to parse response: [%s]", err.Error())
-			return nil, &status.StatusError{status.NewStatus(500, "SetPermissions: Unable to parse response:")}
-		}
-		return retVal, nil
-	} else if res.StatusCode == 404 {
-		return nil, nil
-	} else {
-		return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
-	}
-
-}
-
-func encodePermissions(permissions Permissions) []byte {
-	if jsonDetails, err := json.Marshal(permissions); err != nil {
+	if jsonPerms, err := json.Marshal(permissions); err != nil {
 		log.Println(err)
-		return nil
+		return nil, &status.StatusError{status.NewStatusf(http.StatusInternalServerError, "Error marshaling the permissons [%s]", err)}
 	} else {
-		return jsonDetails
-	}
+		req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(jsonPerms))
+		req.Header.Set("content-type", "application/json")
+		req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
 
+		res, err := client.httpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode == 200 {
+
+			retVal := make(map[string]Permissions)
+			if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
+				log.Printf("SetPermissions: Unable to parse response: [%s]", err.Error())
+				return nil, &status.StatusError{status.NewStatus(500, "SetPermissions: Unable to parse response:")}
+			}
+			return retVal, nil
+		} else if res.StatusCode == 404 {
+			return nil, nil
+		} else {
+			return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+		}
+	}
 }
 
 func (client *gatekeeperClient) getHost() *url.URL {

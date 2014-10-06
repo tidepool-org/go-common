@@ -3,10 +3,12 @@ package clients
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tidepool-org/go-common/clients/disc"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/tidepool-org/go-common/clients/status"
+	"github.com/tidepool-org/go-common/errors"
 )
 
 type (
@@ -97,8 +99,9 @@ func (client *seagullClient) GetPrivatePair(userID, hashName, token string) *Pri
  *  userID -- the Tidepool-assigned userId
  *  collectionName -- the collection being retrieved
  *  token -- a server token or the user token
+ *  v - the interface to return the value in
  */
-func (client *seagullClient) GetCollection(userID, collectionName, token string) interface{} {
+func (client *seagullClient) GetCollection(userID, collectionName, token string, v interface{}) error {
 	host := client.getHost()
 	if host == nil {
 		return nil
@@ -112,21 +115,20 @@ func (client *seagullClient) GetCollection(userID, collectionName, token string)
 	res, err := client.httpClient.Do(req)
 	if err != nil {
 		log.Printf("Problem when looking up collection for userID[%s]. %s", userID, err)
-		return nil
+		return err
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		log.Printf("Unknown response code[%s] from service[%s]", res.StatusCode, req.URL)
-		return nil
+		return &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 
-	var retVal interface{}
-	if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
 		log.Println("Error parsing JSON results", err)
-		return nil
+		return err
 	}
-	return &retVal
+	return nil
 }
 
 func (client *seagullClient) getHost() *url.URL {

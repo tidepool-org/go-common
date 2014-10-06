@@ -116,7 +116,7 @@ func (client *seagullClient) GetCollection(userID, collectionName, token string)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusOK || res.StatusCode != http.StatusNoContent {
+	if res.StatusCode != http.StatusOK {
 		log.Printf("Unknown response code[%s] from service[%s]", res.StatusCode, req.URL)
 		return nil
 	}

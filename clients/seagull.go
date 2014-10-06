@@ -103,7 +103,7 @@ func (client *seagullClient) GetCollection(userID, collectionName, token string)
 	if host == nil {
 		return nil
 	}
-	host.Path += fmt.Sprintf("/metadata/%s/%s", userID, collectionName)
+	host.Path += fmt.Sprintf("%s/%s", userID, collectionName)
 
 	req, _ := http.NewRequest("GET", host.String(), nil)
 	req.Header.Add("x-tidepool-session-token", token)

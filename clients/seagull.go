@@ -15,7 +15,7 @@ type (
 	/*Seagull interface we export*/
 	Seagull interface {
 		GetPrivatePair(userID, hashName, token string) *PrivatePair
-		GetCollection(userID, collectionName, token string) interface{}
+		GetCollection(userID, collectionName, token string, v interface{}) error
 		getHost() *url.URL
 	}
 

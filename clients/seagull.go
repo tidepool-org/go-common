@@ -9,15 +9,29 @@ import (
 	"net/url"
 )
 
-type seagullClient struct {
-	httpClient *http.Client    // store a reference to the http client so we can reuse it
-	hostGetter disc.HostGetter // The getter that provides the host to talk to for the client
-}
+type (
+	/*Seagull interface we export*/
+	Seagull interface {
+		GetPrivatePair(userID, hashName, token string) *PrivatePair
+		GetCollection(userID, collectionName, token string) interface{}
+		getHost() *url.URL
+	}
 
-type seagullClientBuilder struct {
-	httpClient *http.Client
-	hostGetter disc.HostGetter
-}
+	seagullClient struct {
+		httpClient *http.Client    // store a reference to the http client so we can reuse it
+		hostGetter disc.HostGetter // The getter that provides the host to talk to for the client
+	}
+
+	seagullClientBuilder struct {
+		httpClient *http.Client
+		hostGetter disc.HostGetter
+	}
+
+	PrivatePair struct {
+		ID    string
+		Value string
+	}
+)
 
 func NewSeagullClientBuilder() *seagullClientBuilder {
 	return &seagullClientBuilder{}
@@ -46,11 +60,6 @@ func (b *seagullClientBuilder) Build() *seagullClient {
 	}
 }
 
-type PrivatePair struct {
-	ID    string
-	Value string
-}
-
 func (client *seagullClient) GetPrivatePair(userID, hashName, token string) *PrivatePair {
 	host := client.getHost()
 	if host == nil {
@@ -75,6 +84,44 @@ func (client *seagullClient) GetPrivatePair(userID, hashName, token string) *Pri
 	}
 
 	var retVal PrivatePair
+	if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
+		log.Println("Error parsing JSON results", err)
+		return nil
+	}
+	return &retVal
+}
+
+/*
+ *	Retrieves arbitrary collection information from metadata
+ *
+ *  userID -- the Tidepool-assigned userId
+ *  collectionName -- the collection being retrieved
+ *  token -- a server token or the user token
+ */
+func (client *seagullClient) GetCollection(userID, collectionName, token string) interface{} {
+	host := client.getHost()
+	if host == nil {
+		return nil
+	}
+	host.Path += fmt.Sprintf("/metadata/%s/%s", userID, collectionName)
+
+	req, _ := http.NewRequest("GET", host.String(), nil)
+	req.Header.Add("x-tidepool-session-token", token)
+
+	log.Println(req)
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		log.Printf("Problem when looking up collection for userID[%s]. %s", userID, err)
+		return nil
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK || res.StatusCode != http.StatusNoContent {
+		log.Printf("Unknown response code[%s] from service[%s]", res.StatusCode, req.URL)
+		return nil
+	}
+
+	var retVal interface{}
 	if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
 		log.Println("Error parsing JSON results", err)
 		return nil

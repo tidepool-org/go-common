@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"encoding/json"
 	"net/url"
 
 	"github.com/tidepool-org/go-common/clients/status"
@@ -8,16 +9,17 @@ import (
 
 type (
 	seagullMock struct {
-		fakeCollection interface{}
-		fakeUrl        *url.URL
+		fakeJSON string
+		fakeUrl  *url.URL
 	}
 )
 
-func NewSeagullMock(fakeCollection interface{}, fakeUrl *url.URL) *seagullMock {
+func NewSeagullMock(fakeJSON string, fakeUrl *url.URL) *seagullMock {
 	return &seagullMock{
-		fakeCollection: fakeCollection,
-		fakeUrl:        fakeUrl,
+		fakeJSON: fakeJSON,
+		fakeUrl:  fakeUrl,
 	}
+
 }
 
 func (mock *seagullMock) GetPrivatePair(userID, hashName, token string) *PrivatePair {
@@ -26,11 +28,11 @@ func (mock *seagullMock) GetPrivatePair(userID, hashName, token string) *Private
 
 func (mock *seagullMock) GetCollection(userID, collectionName, token string, v interface{}) error {
 
-	if mock.fakeCollection == nil {
+	if mock.fakeJSON == "" {
 		return &status.StatusError{status.NewStatus(500, "Unable to get collection.")}
 	}
 
-	v = mock.fakeCollection
+	json.Unmarshal([]byte(mock.fakeJSON), &v)
 
 	return nil
 }

@@ -33,6 +33,10 @@ func TestMock(t *testing.T) {
 		t.Error("Should give us token data")
 	}
 
+	if usr, _ := client.GetUser("billy@howdy.org", TOKEN_MOCK); usr == nil {
+		t.Error("Should give us a mock user")
+	}
+
 	if host := client.getHost(); host == nil {
 		t.Error("Should give us a fake host")
 	}

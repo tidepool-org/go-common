@@ -31,6 +31,10 @@ func (client *ShorelineMockClient) Login(username, password string) (*UserData, 
 	return &UserData{UserID: "123.456.789", UserName: username, Emails: []string{username}}, client.ServerToken, nil
 }
 
+func (client *ShorelineMockClient) GetUser(userID, token string) (*UserData, error) {
+	return &UserData{UserID: userID, UserName: "From Mock", Emails: []string{userID}}, nil
+}
+
 func (client *ShorelineMockClient) CheckToken(token string) *TokenData {
 	return &TokenData{UserID: "987.654.321", IsServer: true}
 }

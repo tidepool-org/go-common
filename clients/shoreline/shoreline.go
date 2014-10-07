@@ -4,65 +4,76 @@ package shoreline
 
 import (
 	"encoding/json"
-	"github.com/tidepool-org/go-common/clients/disc"
-	"github.com/tidepool-org/go-common/clients/status"
-	"github.com/tidepool-org/go-common/errors"
-	"github.com/tidepool-org/go-common/jepson"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/clients/status"
+	"github.com/tidepool-org/go-common/errors"
+	"github.com/tidepool-org/go-common/jepson"
 )
 
-//Generic client interface that we will implement and mock
-type Client interface {
-	Start() error
-	Close()
-	serverLogin() error
-	Login(username, password string) (*UserData, string, error)
-	CheckToken(token string) *TokenData
-	TokenProvide() string
-	getHost() *url.URL
-}
+const (
+	X_TIDEPOOL_SERVER_NAME   = "x-tidepool-server-name"
+	X_TIDEPOOL_SERVER_SECRET = "x-tidepool-server-secret"
+	X_TIDEPOOL_SESSION_TOKEN = "x-tidepool-session-token"
+)
 
-// UserApiClient manages the local data for a client. A client is intended to be shared among multiple
-// goroutines so it's OK to treat it as a singleton (and probably a good idea).
-type ShorelineClient struct {
-	httpClient *http.Client           // store a reference to the http client so we can reuse it
-	hostGetter disc.HostGetter        // The getter that provides the host to talk to for the client
-	config     *ShorelineClientConfig // Configuration for the client
+type (
 
-	mut         sync.Mutex
-	serverToken string         // stores the most recently received server token
-	closed      chan chan bool // Channel to communicate that the object has been closed
-}
+	//Generic client interface that we will implement and mock
+	Client interface {
+		Close()
+		CheckToken(token string) *TokenData
+		getHost() *url.URL
+		GetUser(userID, token string) (*UserData, error)
+		serverLogin() error
+		Start() error
+		TokenProvide() string
+	}
 
-type ShorelineClientConfig struct {
-	Name                 string          `json:"name"`                 // The name of this server for use in obtaining a server token
-	Secret               string          `json:"secret"`               // The secret used along with the name to obtain a server token
-	TokenRefreshInterval jepson.Duration `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
-}
+	// UserApiClient manages the local data for a client. A client is intended to be shared among multiple
+	// goroutines so it's OK to treat it as a singleton (and probably a good idea).
+	ShorelineClient struct {
+		httpClient *http.Client           // store a reference to the http client so we can reuse it
+		hostGetter disc.HostGetter        // The getter that provides the host to talk to for the client
+		config     *ShorelineClientConfig // Configuration for the client
 
-// UserData is the data structure returned from a successful Login query.
-type UserData struct {
-	UserID   string   // the tidepool-assigned user ID
-	UserName string   // the user-assigned name for the login (usually an email address)
-	Emails   []string // the array of email addresses associated with this account
-}
+		mut         sync.Mutex
+		serverToken string         // stores the most recently received server token
+		closed      chan chan bool // Channel to communicate that the object has been closed
+	}
 
-// TokenData is the data structure returned from a successful CheckToken query.
-type TokenData struct {
-	UserID   string // the UserID stored in the token
-	IsServer bool   // true or false depending on whether the token was a servertoken
-}
+	ShorelineClientConfig struct {
+		Name                 string          `json:"name"`                 // The name of this server for use in obtaining a server token
+		Secret               string          `json:"secret"`               // The secret used along with the name to obtain a server token
+		TokenRefreshInterval jepson.Duration `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
+	}
 
-type ShorelineClientBuilder struct {
-	hostGetter disc.HostGetter
-	config     *ShorelineClientConfig
-	httpClient *http.Client
-}
+	// UserData is the data structure returned from a successful Login query.
+	UserData struct {
+		UserID   string   // the tidepool-assigned user ID
+		UserName string   // the user-assigned name for the login (usually an email address)
+		Emails   []string // the array of email addresses associated with this account
+	}
+
+	// TokenData is the data structure returned from a successful CheckToken query.
+	TokenData struct {
+		UserID   string // the UserID stored in the token
+		IsServer bool   // true or false depending on whether the token was a servertoken
+	}
+
+	ShorelineClientBuilder struct {
+		hostGetter disc.HostGetter
+		config     *ShorelineClientConfig
+		httpClient *http.Client
+	}
+)
 
 func NewShorelineClientBuilder() *ShorelineClientBuilder {
 	return &ShorelineClientBuilder{
@@ -159,6 +170,40 @@ func (client *ShorelineClient) Close() {
 	client.serverToken = ""
 }
 
+// Get user details for the given user
+// In this case the userID could be the actual ID or an email address
+func (client *ShorelineClient) GetUser(userID, token string) (*UserData, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known user-api hosts.")
+	}
+
+	host.Path += fmt.Sprintf("user/%s", userID)
+
+	req, _ := http.NewRequest("GET", host.String(), nil)
+	req.Header.Add(X_TIDEPOOL_SESSION_TOKEN, token)
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failure to get a user")
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusOK:
+		ud, err := extractUserData(res.Body)
+		if err != nil {
+			return nil, err
+		}
+		return ud, nil
+	case http.StatusNoContent:
+		return &UserData{}, nil
+	default:
+		return nil, &status.StatusError{
+			status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+	}
+}
+
 // serverLogin issues a request to the server for a login, using the stored
 // secret that was passed in on the creation of the client object. If
 // successful, it stores the returned token in ServerToken.
@@ -171,8 +216,8 @@ func (client *ShorelineClient) serverLogin() error {
 	host.Path += "/serverlogin"
 
 	req, _ := http.NewRequest("POST", host.String(), nil)
-	req.Header.Add("x-tidepool-server-name", client.config.Name)
-	req.Header.Add("x-tidepool-server-secret", client.config.Secret)
+	req.Header.Add(X_TIDEPOOL_SERVER_NAME, client.config.Name)
+	req.Header.Add(X_TIDEPOOL_SERVER_SECRET, client.config.Secret)
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
@@ -184,7 +229,7 @@ func (client *ShorelineClient) serverLogin() error {
 		return &status.StatusError{
 			status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
-	token := res.Header.Get("x-tidepool-session-token")
+	token := res.Header.Get(X_TIDEPOOL_SESSION_TOKEN)
 
 	client.mut.Lock()
 	defer client.mut.Unlock()
@@ -227,7 +272,7 @@ func (client *ShorelineClient) Login(username, password string) (*UserData, stri
 			return nil, "", err
 		}
 
-		return ud, res.Header.Get("x-tidepool-session-token"), nil
+		return ud, res.Header.Get(X_TIDEPOOL_SESSION_TOKEN), nil
 	case 404:
 		return nil, "", nil
 	default:
@@ -247,7 +292,7 @@ func (client *ShorelineClient) CheckToken(token string) *TokenData {
 	host.Path += "/token/" + token
 
 	req, _ := http.NewRequest("GET", host.String(), nil)
-	req.Header.Add("x-tidepool-session-token", client.serverToken)
+	req.Header.Add(X_TIDEPOOL_SESSION_TOKEN, client.serverToken)
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {

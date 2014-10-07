@@ -119,16 +119,20 @@ func (client *seagullClient) GetCollection(userID, collectionName, token string,
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusOK {
-		log.Printf("Unknown response code[%s] from service[%s]", res.StatusCode, req.URL)
+	switch res.StatusCode {
+	case http.StatusOK:
+		if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
+			log.Println("Error parsing JSON results", err)
+			return err
+		}
+		return nil
+	case http.StatusNotFound:
+		log.Printf("No [%s] collection found for [%s]", collectionName, userID)
+		return nil
+	default:
 		return &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 
-	if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
-		log.Println("Error parsing JSON results", err)
-		return err
-	}
-	return nil
 }
 
 func (client *seagullClient) getHost() *url.URL {

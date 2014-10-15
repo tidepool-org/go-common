@@ -7,8 +7,8 @@ import (
 
 // Type status holds the status return from an http request.
 type Status struct {
-	Code   int
-	Reason string
+	Code   int    `json:"code"`
+	Reason string `json:"reason"`
 }
 
 // NewStatus constructs a Status object; if no reason is provided, it uses the

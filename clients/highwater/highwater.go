@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/tidepool-org/go-common/clients/disc"
 )
@@ -107,8 +108,10 @@ func (client *HighwaterClient) getHost() *url.URL {
 }
 
 func (client *HighwaterClient) adjustEventName(name string) string {
-	//TODO: var metricsSource = config.metricsSource.replace(/-/g, ' ') + ' - ';
-	return client.config.MetricsSource + name
+	src := client.config.MetricsSource
+	src = strings.Replace(src, "-", " ", 1)
+
+	return src + " - " + name
 }
 
 func (client *HighwaterClient) adjustEventParams(params map[string]string) []byte {

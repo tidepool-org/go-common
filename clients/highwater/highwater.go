@@ -109,7 +109,7 @@ func (client *HighwaterClient) getHost() *url.URL {
 
 func (client *HighwaterClient) adjustEventName(name string) string {
 	src := client.config.MetricsSource
-	src = strings.Replace(src, "-", " ", 1)
+	src = strings.Replace(src, "-", " ", -1)
 
 	return src + " - " + name
 }
@@ -137,11 +137,10 @@ func (client *HighwaterClient) PostServer(eventName, token string, params map[st
 	host.Path += "/server/" + client.config.Name + "/" + client.adjustEventName(eventName)
 
 	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
-
 	req.Header.Add("x-tidepool-session-token", token)
 
 	if _, err := client.httpClient.Do(req); err != nil {
-		log.Println("Error doing postServer ", err)
+		log.Printf("Error PostServer: [%s]  err[%v] ", req.URL, err)
 	}
 
 	return
@@ -160,7 +159,7 @@ func (client *HighwaterClient) PostThisUser(eventName, token string, params map[
 	req.Header.Add("x-tidepool-session-token", token)
 
 	if _, err := client.httpClient.Do(req); err != nil {
-		log.Println("Error doing postThisUser ", err)
+		log.Printf("Error PostThisUser: [%s]  err[%v] ", req.URL, err)
 	}
 
 	return
@@ -179,7 +178,7 @@ func (client *HighwaterClient) PostWithUser(userId, eventName, token string, par
 	req.Header.Add("x-tidepool-session-token", token)
 
 	if _, err := client.httpClient.Do(req); err != nil {
-		log.Println("Error doing postWithUser ", err)
+		log.Printf("Error PostWithUser: [%s]  err[%v] ", req.URL, err)
 	}
 
 	return

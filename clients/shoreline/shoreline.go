@@ -217,7 +217,7 @@ func (client *ShorelineClient) GetUser(userID, token string) (*UserData, error) 
 func (client *ShorelineClient) UpdateUser(user UserUpdate, token string) error {
 	host := client.getHost()
 	if host == nil {
-		return nil, errors.New("No known user-api hosts.")
+		return errors.New("No known user-api hosts.")
 	}
 
 	host.Path += fmt.Sprintf("user/%s", user.UserID)

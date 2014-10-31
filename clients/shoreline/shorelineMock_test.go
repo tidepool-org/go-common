@@ -37,6 +37,10 @@ func TestMock(t *testing.T) {
 		t.Error("Should give us a mock user")
 	}
 
+	if err := client.UpdateUser(UserUpdate{UserID: "123", UserName: "name", Emails: []string{"an@email.org"}, Password: "myN3wPw"}, TOKEN_MOCK); err != nil {
+		t.Error("Should return no error on success")
+	}
+
 	if host := client.getHost(); host == nil {
 		t.Error("Should give us a fake host")
 	}

@@ -221,7 +221,7 @@ func (client *ShorelineClient) UpdateUser(user UserUpdate, token string) error {
 	}
 
 	//structure that the update are given to us in
-	var updatesToApply struct {
+	type updatesToApply struct {
 		Updates UserUpdate `json:"updates"`
 	}
 

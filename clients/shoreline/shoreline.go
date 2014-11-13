@@ -220,7 +220,7 @@ func (client *ShorelineClient) UpdateUser(user UserUpdate, token string) error {
 		return errors.New("No known user-api hosts.")
 	}
 
-	host.Path += fmt.Sprintf("user/%s", user.UserID)
+	host.Path += "/user/" + user.UserID
 
 	if jsonUser, err := json.Marshal(user); err != nil {
 		return &status.StatusError{

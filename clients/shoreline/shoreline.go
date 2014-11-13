@@ -220,9 +220,14 @@ func (client *ShorelineClient) UpdateUser(user UserUpdate, token string) error {
 		return errors.New("No known user-api hosts.")
 	}
 
+	//structure that the update are given to us in
+	var updatesToApply struct {
+		Updates UserUpdate `json:"updates"`
+	}
+
 	host.Path += "/user/" + user.UserID
 
-	if jsonUser, err := json.Marshal(user); err != nil {
+	if jsonUser, err := json.Marshal(updatesToApply{Updates: user}); err != nil {
 		return &status.StatusError{
 			status.NewStatusf(http.StatusInternalServerError, "Error getting user updates [%s]", err.Error())}
 	} else {

@@ -67,7 +67,8 @@ type (
 	// UserUpdate is the data structure for updating of a users details
 	UserUpdate struct {
 		UserData
-		Password string
+		Password      string
+		Authenticated bool //the user has verified the email used as part of signup
 	}
 
 	// TokenData is the data structure returned from a successful CheckToken query.

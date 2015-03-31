@@ -33,6 +33,7 @@ type (
 		CheckToken(token string) *TokenData
 		getHost() *url.URL
 		GetUser(userID, token string) (*UserData, error)
+		Login(username, password string) (*UserData, string, error)
 		UpdateUser(user UserUpdate, token string) error
 		serverLogin() error
 		Start() error

@@ -31,12 +31,8 @@ func (client *ShorelineMockClient) Login(username, password string) (*UserData, 
 	return &UserData{UserID: "123.456.789", UserName: username, Emails: []string{username}}, client.ServerToken, nil
 }
 
-func (client *ShorelineMockClient) GetUser(userID, token string) (*UserData, error) {
-	return &UserData{UserID: userID, UserName: "From Mock", Emails: []string{userID}}, nil
-}
-
-func (client *ShorelineMockClient) UpdateUser(user UserUpdate, token string) error {
-	return nil
+func (client *ShorelineMockClient) Signup(username, password, email string) (*UserData, error) {
+	return &UserData{UserID: "123.xxx.456", UserName: username, Emails: []string{email}}, nil
 }
 
 func (client *ShorelineMockClient) CheckToken(token string) *TokenData {

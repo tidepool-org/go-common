@@ -209,7 +209,7 @@ func extractUserData(r io.Reader) (*UserData, error) {
 func (client *ShorelineClient) Signup(username, password, email string) (*UserData, error) {
 	host := client.getHost()
 	if host == nil {
-		return nil, "", errors.New("No known user-api hosts.")
+		return nil, errors.New("No known user-api hosts.")
 	}
 
 	host.Path += "/user"
@@ -219,7 +219,7 @@ func (client *ShorelineClient) Signup(username, password, email string) (*UserDa
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	defer res.Body.Close()
 

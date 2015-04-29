@@ -97,7 +97,10 @@ func TestLogin(t *testing.T) {
 func TestSignup(t *testing.T) {
 	srvr := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		switch req.URL.Path {
+		case "/serverlogin":
+			res.Header().Set("x-tidepool-session-token", token)
 		case "/user":
+			res.WriteHeader(http.StatusCreated)
 			fmt.Fprint(res, `{"userid": "1234abc", "username": "new me", "emails": ["new.me@1234.abc"]}`)
 		default:
 			t.Errorf("Unknown path[%s]", req.URL.Path)
@@ -105,23 +108,24 @@ func TestSignup(t *testing.T) {
 	}))
 	defer srvr.Close()
 
-	shorelineClient := NewShorelineClientBuilder().
+	client := NewShorelineClientBuilder().
 		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
 		WithName("test").
 		WithSecret("howdy ho, neighbor joe").
 		Build()
 
-	err := shorelineClient.Start()
+	err := client.Start()
 	if err != nil {
 		t.Errorf("Failed start with error[%v]", err)
 	}
-	defer shorelineClient.Close()
+	defer client.Close()
 
-	ud, err := shorelineClient.Signup("new me", "howdy", "new.me@1234.abc")
+	ud, err := client.Signup("new me", "howdy", "new.me@1234.abc")
 	if err != nil {
-		t.Errorf("Error on signup[%v]", err)
+		t.Errorf("Error on signup [%s]", err.Error())
 	}
 	if ud.UserID != "1234abc" || ud.UserName != "new me" || len(ud.Emails) != 1 || ud.Emails[0] != "new.me@1234.abc" {
 		t.Errorf("Bad userData object[%+v]", ud)
 	}
+
 }

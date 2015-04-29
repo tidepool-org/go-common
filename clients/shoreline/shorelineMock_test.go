@@ -41,7 +41,7 @@ func TestMock(t *testing.T) {
 		t.Error("Should not return err")
 	}
 
-	if sd, se := client.Signup(username, password, email); sd == nil || se != nil {
+	if sd, se := client.Signup("username", "password", "email@place.org"); sd == nil || se != nil {
 		t.Errorf("Signup not return err[%s]", se.Error())
 	}
 

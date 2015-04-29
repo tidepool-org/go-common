@@ -3,6 +3,7 @@
 package shoreline
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/tidepool-org/go-common/clients/disc"
@@ -214,7 +215,7 @@ func (client *ShorelineClient) Signup(username, password, email string) (*UserDa
 	host.Path += "/user"
 	data := []byte(fmt.Sprintf(`{"username": "%s", "password": "%s","emails":["%s"]}`, username, password, email))
 
-	req, _ := http.NewRequest("POST", host.String(), data)
+	req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(data))
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {

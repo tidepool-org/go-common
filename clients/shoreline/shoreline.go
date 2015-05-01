@@ -22,12 +22,10 @@ import (
 type Client interface {
 	Start() error
 	Close()
-	serverLogin() error
 	Login(username, password string) (*UserData, string, error)
 	Signup(username, password, email string) (*UserData, error)
 	CheckToken(token string) *TokenData
 	TokenProvide() string
-	getHost() *url.URL
 }
 
 // UserApiClient manages the local data for a client. A client is intended to be shared among multiple

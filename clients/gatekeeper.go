@@ -16,9 +16,15 @@ import (
 type (
 	//Inteface so that we can mock gatekeeperClient for tests
 	Gatekeeper interface {
+		//userID  -- the Tidepool-assigned userID
+		//groupID  -- the Tidepool-assigned groupID
+		//
+		// returns the Permissions
 		UserInGroup(userID, groupID string) (map[string]Permissions, error)
+		//userID  -- the Tidepool-assigned userID
+		//groupID  -- the Tidepool-assigned groupID
+		//permissions -- the permisson we want to give the user for the group
 		SetPermissions(userID, groupID string, permissions Permissions) (map[string]Permissions, error)
-		getHost() *url.URL
 	}
 
 	gatekeeperClient struct {

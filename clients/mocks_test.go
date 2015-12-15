@@ -20,7 +20,7 @@ func TestGatekeeperMock_UserInGroup(t *testing.T) {
 
 	expected := makeExpectedPermissons()
 
-	gkc := NewGatekeeperMock()
+	gkc := NewGatekeeperMock(nil, nil)
 
 	if perms, err := gkc.UserInGroup(USERID, GROUPID); err != nil {
 		t.Fatal("No error should be returned")
@@ -30,7 +30,7 @@ func TestGatekeeperMock_UserInGroup(t *testing.T) {
 }
 func TestGatekeeperMock_SetPermissions(t *testing.T) {
 
-	gkc := NewGatekeeperMock()
+	gkc := NewGatekeeperMock(nil, nil)
 
 	expected := makeExpectedPermissons()
 

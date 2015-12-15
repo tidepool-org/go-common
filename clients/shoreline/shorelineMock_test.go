@@ -33,22 +33,8 @@ func TestMock(t *testing.T) {
 		t.Error("Should give us token data")
 	}
 
-	if usr, _ := client.GetUser("billy@howdy.org", TOKEN_MOCK); usr == nil {
-		t.Error("Should give us a mock user")
-	}
-
-	user := UserUpdate{UserData: UserData{UserID: "123", UserName: "name", Emails: []string{"an@email.org"}}, Password: "myN3wPw"}
-
-	if err := client.UpdateUser(user, TOKEN_MOCK); err != nil {
-		t.Error("Should return no error on success")
-	}
-
-	if host := client.getHost(); host == nil {
-		t.Error("Should give us a fake host")
-	}
-
-	if err := client.serverLogin(); err != nil {
-		t.Error("Should not return err")
+	if sd, se := client.Signup("username", "password", "email@place.org"); sd == nil || se != nil {
+		t.Errorf("Signup not return err[%s]", se.Error())
 	}
 
 }

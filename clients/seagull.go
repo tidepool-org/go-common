@@ -12,11 +12,20 @@ import (
 )
 
 type (
-	/*Seagull interface we export*/
 	Seagull interface {
+		// Retrieves arbitrary collection information from metadata
+		//
+		// userID -- the Tidepool-assigned userId
+		// hashName -- the name of what we are trying to get
+		// token -- a server token or the user token
 		GetPrivatePair(userID, hashName, token string) *PrivatePair
+		// Retrieves arbitrary collection information from metadata
+		//
+		// userID -- the Tidepool-assigned userId
+		// collectionName -- the collection being retrieved
+		// token -- a server token or the user token
+		// v - the interface to return the value in
 		GetCollection(userID, collectionName, token string, v interface{}) error
-		getHost() *url.URL
 	}
 
 	seagullClient struct {
@@ -93,14 +102,6 @@ func (client *seagullClient) GetPrivatePair(userID, hashName, token string) *Pri
 	return &retVal
 }
 
-/*
- *	Retrieves arbitrary collection information from metadata
- *
- *  userID -- the Tidepool-assigned userId
- *  collectionName -- the collection being retrieved
- *  token -- a server token or the user token
- *  v - the interface to return the value in
- */
 func (client *seagullClient) GetCollection(userID, collectionName, token string, v interface{}) error {
 	host := client.getHost()
 	if host == nil {

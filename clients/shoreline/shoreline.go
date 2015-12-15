@@ -6,16 +6,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tidepool-org/go-common/clients/disc"
-	"github.com/tidepool-org/go-common/clients/status"
-	"github.com/tidepool-org/go-common/errors"
-	"github.com/tidepool-org/go-common/jepson"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/clients/status"
+	"github.com/tidepool-org/go-common/errors"
+	"github.com/tidepool-org/go-common/jepson"
 )
 
 //Generic client interface that we will implement and mock
@@ -26,6 +27,8 @@ type Client interface {
 	Signup(username, password, email string) (*UserData, error)
 	CheckToken(token string) *TokenData
 	TokenProvide() string
+	GetUser(userID, token string) (*UserData, error)
+	UpdateUser(user UserUpdate, token string) error
 }
 
 // UserApiClient manages the local data for a client. A client is intended to be shared among multiple
@@ -51,6 +54,13 @@ type UserData struct {
 	UserID   string   // the tidepool-assigned user ID
 	UserName string   // the user-assigned name for the login (usually an email address)
 	Emails   []string // the array of email addresses associated with this account
+}
+
+// UserUpdate is the data structure for updating of a users details
+type UserUpdate struct {
+	UserData
+	Password      string
+	Authenticated bool //the user has verified the email used as part of signup
 }
 
 // TokenData is the data structure returned from a successful CheckToken query.
@@ -309,6 +319,78 @@ func (client *ShorelineClient) TokenProvide() string {
 	defer client.mut.Unlock()
 
 	return client.serverToken
+}
+
+// Get user details for the given user
+// In this case the userID could be the actual ID or an email address
+func (client *ShorelineClient) GetUser(userID, token string) (*UserData, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known user-api hosts.")
+	}
+
+	host.Path += fmt.Sprintf("user/%s", userID)
+
+	req, _ := http.NewRequest("GET", host.String(), nil)
+	req.Header.Add("x-tidepool-session-token", token)
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failure to get a user")
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusOK:
+		ud, err := extractUserData(res.Body)
+		if err != nil {
+			return nil, err
+		}
+		return ud, nil
+	case http.StatusNoContent:
+		return &UserData{}, nil
+	default:
+		return nil, &status.StatusError{
+			status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+	}
+}
+
+// Get user details for the given user
+// In this case the userID could be the actual ID or an email address
+func (client *ShorelineClient) UpdateUser(user UserUpdate, token string) error {
+	host := client.getHost()
+	if host == nil {
+		return errors.New("No known user-api hosts.")
+	}
+
+	//structure that the update are given to us in
+	type updatesToApply struct {
+		Updates UserUpdate `json:"updates"`
+	}
+
+	host.Path += "/user/" + user.UserID
+
+	if jsonUser, err := json.Marshal(updatesToApply{Updates: user}); err != nil {
+		return &status.StatusError{
+			status.NewStatusf(http.StatusInternalServerError, "Error getting user updates [%s]", err.Error())}
+	} else {
+
+		req, _ := http.NewRequest("PUT", host.String(), bytes.NewBuffer(jsonUser))
+		req.Header.Add("x-tidepool-session-token", token)
+
+		res, err := client.httpClient.Do(req)
+		if err != nil {
+			return errors.Wrap(err, "Failure to get a user")
+		}
+
+		switch res.StatusCode {
+		case http.StatusOK:
+			return nil
+		default:
+			return &status.StatusError{
+				status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+		}
+	}
 }
 
 func (client *ShorelineClient) getHost() *url.URL {

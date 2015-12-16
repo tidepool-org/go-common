@@ -36,3 +36,11 @@ func (client *ShorelineMockClient) CheckToken(token string) *TokenData {
 func (client *ShorelineMockClient) TokenProvide() string {
 	return client.ServerToken
 }
+
+func (client *ShorelineMockClient) GetUser(userID, token string) (*UserData, error) {
+	return &UserData{UserID: userID, UserName: "From Mock", Emails: []string{userID}}, nil
+}
+
+func (client *ShorelineMockClient) UpdateUser(user UserUpdate, token string) error {
+	return nil
+}

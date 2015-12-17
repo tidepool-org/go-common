@@ -5,22 +5,24 @@ import (
 )
 
 type (
-	GatekeeperMock struct{}
-	SeagullMock    struct{}
+	GatekeeperMock struct {
+		expectedPermissions map[string]Permissions
+		expectedError       error
+	}
+	SeagullMock struct{}
 )
 
 //A mock of the Gatekeeper interface
-func NewGatekeeperMock() *GatekeeperMock {
-	return &GatekeeperMock{}
+func NewGatekeeperMock(expectedPermissions map[string]Permissions, expectedError error) *GatekeeperMock {
+	return &GatekeeperMock{expectedPermissions, expectedError}
 }
 
 func (mock *GatekeeperMock) UserInGroup(userID, groupID string) (map[string]Permissions, error) {
-	perms := make(map[string]Permissions)
-	p := make(Permissions)
-	p["userid"] = userID
-	perms["root"] = p
-
-	return perms, nil
+	if mock.expectedPermissions != nil || mock.expectedError != nil {
+		return mock.expectedPermissions, mock.expectedError
+	} else {
+		return map[string]Permissions{"root": Permissions{"userid": userID}}, nil
+	}
 }
 
 func (mock *GatekeeperMock) SetPermissions(userID, groupID string, permissions Permissions) (map[string]Permissions, error) {

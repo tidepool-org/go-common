@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -8,12 +9,8 @@ import (
 
 const USERID, GROUPID, TOKEN_MOCK = "123user", "456group", "this is a token"
 
-func makeExpectedPermissons() map[string]Permissions {
-	expected := make(map[string]Permissions)
-	p := make(Permissions)
-	p["userid"] = USERID
-	expected["root"] = p
-	return expected
+func makeExpectedPermissons() Permissions {
+	return Permissions{USERID: Allowed}
 }
 
 func TestGatekeeperMock_UserInGroup(t *testing.T) {
@@ -24,7 +21,7 @@ func TestGatekeeperMock_UserInGroup(t *testing.T) {
 
 	if perms, err := gkc.UserInGroup(USERID, GROUPID); err != nil {
 		t.Fatal("No error should be returned")
-	} else if perms == nil || perms["root"]["userid"] != expected["root"]["userid"] {
+	} else if !reflect.DeepEqual(perms, expected) {
 		t.Fatalf("Perms where [%v] but expected [%v]", perms, expected)
 	}
 }
@@ -34,9 +31,9 @@ func TestGatekeeperMock_SetPermissions(t *testing.T) {
 
 	expected := makeExpectedPermissons()
 
-	if perms, err := gkc.SetPermissions(USERID, GROUPID, expected["root"]); err != nil {
+	if perms, err := gkc.SetPermissions(USERID, GROUPID, expected); err != nil {
 		t.Fatal("No error should be returned")
-	} else if perms == nil || perms["root"]["userid"] != expected["root"]["userid"] {
+	} else if !reflect.DeepEqual(perms, expected) {
 		t.Fatalf("Perms where [%v] but expected [%v]", perms, expected)
 
 	}

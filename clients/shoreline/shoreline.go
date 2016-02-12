@@ -60,7 +60,7 @@ type UserData struct {
 type UserUpdate struct {
 	UserData
 	Password      string
-	Authenticated bool //the user has verified the email used as part of signup
+	EmailVerified bool //the user has verified the email used as part of signup
 }
 
 // TokenData is the data structure returned from a successful CheckToken query.

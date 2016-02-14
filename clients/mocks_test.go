@@ -13,6 +13,10 @@ func makeExpectedPermissons() Permissions {
 	return Permissions{USERID: Allowed}
 }
 
+func makeExpectedUsersPermissions() UsersPermissions {
+	return UsersPermissions{GROUPID: Permissions{GROUPID: Allowed}}
+}
+
 func TestGatekeeperMock_UserInGroup(t *testing.T) {
 
 	expected := makeExpectedPermissons()
@@ -25,6 +29,20 @@ func TestGatekeeperMock_UserInGroup(t *testing.T) {
 		t.Fatalf("Perms where [%v] but expected [%v]", perms, expected)
 	}
 }
+
+func TestGatekeeperMock_UsersInGroup(t *testing.T) {
+
+	expected := makeExpectedUsersPermissions()
+
+	gkc := NewGatekeeperMock(nil, nil)
+
+	if perms, err := gkc.UsersInGroup(GROUPID); err != nil {
+		t.Fatal("No error should be returned")
+	} else if !reflect.DeepEqual(perms, expected) {
+		t.Fatalf("Perms were [%v] but expected [%v]", perms, expected)
+	}
+}
+
 func TestGatekeeperMock_SetPermissions(t *testing.T) {
 
 	gkc := NewGatekeeperMock(nil, nil)

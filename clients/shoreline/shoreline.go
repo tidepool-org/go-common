@@ -51,16 +51,20 @@ type ShorelineClientConfig struct {
 
 // UserData is the data structure returned from a successful Login query.
 type UserData struct {
-	UserID   string   `json:"userid,omitempty"`   // the tidepool-assigned user ID
-	UserName string   `json:"username,omitempty"` // the user-assigned name for the login (usually an email address)
-	Emails   []string `json:"emails,omitempty"`   // the array of email addresses associated with this account
+	UserID         string   `json:"userid,omitempty"`         // the tidepool-assigned user ID
+	UserName       string   `json:"username,omitempty"`       // the user-assigned name for the login (usually an email address)
+	Emails         []string `json:"emails,omitempty"`         // the array of email addresses associated with this account
+	PasswordExists bool     `json:"passwordExists,omitempty"` // Does a password exist for the user?
+	EmailVerified  bool     `json:"emailVerified,omitempty"`  //the user has verified the email used as part of signup
 }
 
 // UserUpdate is the data structure for updating of a users details
 type UserUpdate struct {
-	UserData
-	Password      string `json:"password,omitempty"`
-	EmailVerified bool   `json:"emailVerified,omitempty"` //the user has verified the email used as part of signup
+	UserID        string   `json:"userid,omitempty"`        // the tidepool-assigned user ID
+	UserName      string   `json:"username,omitempty"`      // the user-assigned name for the login (usually an email address)
+	Emails        []string `json:"emails,omitempty"`        // the array of email addresses associated with this account
+	Password      string   `json:"password,omitempty"`      //
+	EmailVerified bool     `json:"emailVerified,omitempty"` //the user has verified the email used as part of signup
 }
 
 // TokenData is the data structure returned from a successful CheckToken query.

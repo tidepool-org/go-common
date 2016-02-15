@@ -47,6 +47,6 @@ func (mock *SeagullMock) GetPrivatePair(userID, hashName, token string) *Private
 }
 
 func (mock *SeagullMock) GetCollection(userID, collectionName, token string, v interface{}) error {
-	json.Unmarshal([]byte(`{"Something":"anit no thing"}`), &v)
+	json.Unmarshal([]byte(`{"Something":"anit no thing", "patient": {"birthday": "2016-01-01"}}`), &v)
 	return nil
 }

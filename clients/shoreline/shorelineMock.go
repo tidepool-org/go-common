@@ -38,7 +38,13 @@ func (client *ShorelineMockClient) TokenProvide() string {
 }
 
 func (client *ShorelineMockClient) GetUser(userID, token string) (*UserData, error) {
-	return &UserData{UserID: userID, UserName: "From Mock", Emails: []string{userID}}, nil
+	if userID == "NotFound" {
+		return nil, nil
+	} else if userID == "WithoutPassword" {
+		return &UserData{UserID: userID, UserName: "From Mock", Emails: []string{userID}, PasswordExists: false}, nil
+	} else {
+		return &UserData{UserID: userID, UserName: "From Mock", Emails: []string{userID}, PasswordExists: true}, nil
+	}
 }
 
 func (client *ShorelineMockClient) UpdateUser(user UserUpdate, token string) error {

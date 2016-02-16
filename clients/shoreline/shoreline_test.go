@@ -2,11 +2,12 @@ package shoreline
 
 import (
 	"fmt"
-	"github.com/tidepool-org/go-common/clients/disc"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/tidepool-org/go-common/clients/disc"
 )
 
 const name = "test"
@@ -89,7 +90,7 @@ func TestLogin(t *testing.T) {
 	if tok != token {
 		t.Errorf("Unexpected token[%s]", tok)
 	}
-	if ud.UserID != "1234abc" || ud.UserName != "billy" || len(ud.Emails) != 1 || ud.Emails[0] != "billy@1234.abc" {
+	if ud.UserID != "1234abc" || ud.Username != "billy" || len(ud.Emails) != 1 || ud.Emails[0] != "billy@1234.abc" {
 		t.Errorf("Bad userData object[%+v]", ud)
 	}
 }
@@ -124,7 +125,7 @@ func TestSignup(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error on signup [%s]", err.Error())
 	}
-	if ud.UserID != "1234abc" || ud.UserName != "new me" || len(ud.Emails) != 1 || ud.Emails[0] != "new.me@1234.abc" {
+	if ud.UserID != "1234abc" || ud.Username != "new me" || len(ud.Emails) != 1 || ud.Emails[0] != "new.me@1234.abc" {
 		t.Errorf("Bad userData object[%+v]", ud)
 	}
 

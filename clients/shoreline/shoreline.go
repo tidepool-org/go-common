@@ -57,6 +57,7 @@ type UserData struct {
 	PasswordExists bool     `json:"passwordExists,omitempty"` // Does a password exist for the user?
 	Roles          []string `json:"roles,omitempty"`          // User roles
 	EmailVerified  bool     `json:"emailVerified,omitempty"`  // the user has verified the email used as part of signup
+	TermsAccepted  string   `json:"termsAccepted,omitempty"`  // When were the terms accepted
 }
 
 // UserUpdate is the data structure for updating of a users details

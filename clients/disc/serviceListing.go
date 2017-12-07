@@ -2,9 +2,10 @@ package disc
 
 import (
 	"encoding/json"
-	"github.com/tidepool-org/go-common/jepson"
 	"net/url"
 	"strings"
+
+	"github.com/tidepool-org/go-common/jepson"
 )
 
 type ServiceListing struct {
@@ -79,6 +80,13 @@ func (sl *ServiceListing) GetPort() string {
 
 func (sl *ServiceListing) GetSSLSpec() *sslSpec {
 	return sl.sslSpec
+}
+
+func (sl *ServiceListing) SetSSLSpec(keyFile, certFile string) {
+	sl.sslSpec = &sslSpec{
+		KeyFile:  keyFile,
+		CertFile: certFile,
+	}
 }
 
 func (sl *ServiceListing) GetProperty(property string) string {

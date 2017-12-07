@@ -21,6 +21,20 @@ type sslSpec struct {
 	CertFile string
 }
 
+func NewServiceListing(host, scheme, service, keyFile, certFile string) *ServiceListing {
+	return &ServiceListing{
+		Service: service,
+		URL: url.URL{
+			Host:   host,
+			Scheme: scheme,
+		},
+		sslSpec: &sslSpec{
+			CertFile: certFile,
+			KeyFile:  keyFile,
+		},
+	}
+}
+
 func (sl *ServiceListing) UnmarshalJSON(data []byte) error {
 	asMap := make(map[string]json.RawMessage)
 	err := json.Unmarshal(data, &asMap)
@@ -80,13 +94,6 @@ func (sl *ServiceListing) GetPort() string {
 
 func (sl *ServiceListing) GetSSLSpec() *sslSpec {
 	return sl.sslSpec
-}
-
-func (sl *ServiceListing) SetSSLSpec(keyFile, certFile string) {
-	sl.sslSpec = &sslSpec{
-		KeyFile:  keyFile,
-		CertFile: certFile,
-	}
 }
 
 func (sl *ServiceListing) GetProperty(property string) string {

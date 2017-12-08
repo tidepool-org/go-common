@@ -21,20 +21,6 @@ type sslSpec struct {
 	CertFile string
 }
 
-func NewServiceListing(host, scheme, service, keyFile, certFile string) *ServiceListing {
-	return &ServiceListing{
-		Service: service,
-		URL: url.URL{
-			Host:   host,
-			Scheme: scheme,
-		},
-		sslSpec: &sslSpec{
-			CertFile: certFile,
-			KeyFile:  keyFile,
-		},
-	}
-}
-
 func (sl *ServiceListing) UnmarshalJSON(data []byte) error {
 	asMap := make(map[string]json.RawMessage)
 	err := json.Unmarshal(data, &asMap)

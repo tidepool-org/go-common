@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/tokens"
 )
 
 const name = "test"
@@ -26,7 +27,7 @@ func TestStart(t *testing.T) {
 				t.Errorf("Bad secret value[%v]", sec)
 			}
 
-			res.Header().Set("x-tidepool-session-token", token)
+			res.Header().Set(tokens.TidepoolSessionTokenName, token)
 		default:
 			t.Errorf("Unknown path[%s]", req.URL.Path)
 		}
@@ -45,8 +46,8 @@ func TestStart(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed start with error[%v]", err)
 	}
-	if tok := shorelineClient.TokenProvide(); tok != token {
-		t.Errorf("Unexpected token[%s]", tok)
+	if tok := shorelineClient.SecretProvide(); tok != secret {
+		t.Errorf("Unexpected secret[%s]", tok)
 	}
 
 	<-time.After(100 * time.Millisecond)
@@ -63,7 +64,7 @@ func TestLogin(t *testing.T) {
 				t.Errorf("Bad Authorization Header[%v]", auth)
 			}
 
-			res.Header().Set("x-tidepool-session-token", token)
+			res.Header().Set(tokens.TidepoolSessionTokenName, token)
 			fmt.Fprint(res, `{"userid": "1234abc", "username": "billy", "emails": ["billy@1234.abc"]}`)
 		default:
 			t.Errorf("Unknown path[%s]", req.URL.Path)
@@ -99,7 +100,7 @@ func TestSignup(t *testing.T) {
 	srvr := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		switch req.URL.Path {
 		case "/serverlogin":
-			res.Header().Set("x-tidepool-session-token", token)
+			res.Header().Set(tokens.TidepoolSessionTokenName, token)
 		case "/user":
 			res.WriteHeader(http.StatusCreated)
 			fmt.Fprint(res, `{"userid": "1234abc", "username": "new me", "emails": ["new.me@1234.abc"]}`)

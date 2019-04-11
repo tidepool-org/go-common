@@ -12,7 +12,7 @@ import (
 
 	"github.com/tidepool-org/go-common/errors"
 	"github.com/tidepool-org/go-common/jepson"
-	"globalsign/mgo"
+	"github.com/globalsign/mgo"
 )
 
 type Config struct {

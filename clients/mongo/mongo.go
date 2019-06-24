@@ -85,7 +85,6 @@ func Connect(config *Config) (*mgo.Session, error) {
 			return tls.Dial("tcp", addr.String(), &tls.Config{InsecureSkipVerify: true})
 		}
 	}
-	log.Printf("Initializing with config[%+v], dur[%v]", config, dur)
 	return mgo.DialWithInfo(dialInfo)
 }
 

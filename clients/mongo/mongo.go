@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"crypto/tls"
+	"os"
 	"net"
 	"time"
 
@@ -19,6 +20,16 @@ type Config struct {
 	Ssl              bool             `json:"ssl"`
 	Hosts            string           `json:"hosts"`
 	OptParams        string           `json:"optParams"`
+}
+
+func(config *Config) FromEnv() {
+	config.Hosts, _ = os.LookupEnv("MONGO_HOSTS")
+	config.User, _ = os.LookupEnv("MONGO_USER")
+	config.Password, _ = os.LookupEnv("MONGO_PASSWORD")
+	config.Database, _ = os.LookupEnv("MONGO_DATABASE")
+	config.OptParams, _ = os.LookupEnv("MONGO_OPT_PARAMS")
+	ssl, found := os.LookupEnv("MONGO_SSL")
+	config.Ssl = found && ssl == "true"
 }
 
 func (config *Config) ToConnectionString() (string, error) {

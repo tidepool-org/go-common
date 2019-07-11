@@ -12,7 +12,6 @@ func TestNoDatabase(t *testing.T) {
         }
 }
 
-
 func TestDatabase(t *testing.T) {
 	x := Config{ Database: "admin"}
 	s, err := x.ToConnectionString()
@@ -21,6 +20,18 @@ func TestDatabase(t *testing.T) {
 	  t.Error("should not error")
         }
 	if s != "mongodb://localhost/admin?ssl=false" {
+	  t.Errorf("found %v", s)
+        }
+}
+
+func TestScheme(t *testing.T) {
+	x := Config{ Database: "admin", Scheme: "mongodb+srv"}
+	s, err := x.ToConnectionString()
+
+	if err != nil {
+	  t.Error("should not error")
+        }
+	if s != "mongodb+srv://localhost/admin?ssl=false" {
 	  t.Errorf("found %v", s)
         }
 }

@@ -1,5 +1,5 @@
 #! /bin/bash -eu
 
-GOPATH="$(pwd -P)/../../../.."
+#GOPATH="$(pwd -P)/../../../.."
 
 ./gotest

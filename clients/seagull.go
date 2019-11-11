@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/tidepool-org/go-common/clients/disc"
 	"github.com/tidepool-org/go-common/clients/status"
 )
 
@@ -29,13 +28,14 @@ type (
 	}
 
 	seagullClient struct {
-		httpClient *http.Client    // store a reference to the http client so we can reuse it
-		hostGetter disc.HostGetter // The getter that provides the host to talk to for the client
+		httpClient *http.Client // store a reference to the http client so we can reuse it
+		host       url.URL      // The host to talk to for the client
 	}
 
 	seagullClientBuilder struct {
 		httpClient *http.Client
-		hostGetter disc.HostGetter
+		host       *url.URL
+		err        error
 	}
 
 	PrivatePair struct {
@@ -53,35 +53,41 @@ func (b *seagullClientBuilder) WithHttpClient(httpClient *http.Client) *seagullC
 	return b
 }
 
-func (b *seagullClientBuilder) WithHostGetter(hostGetter disc.HostGetter) *seagullClientBuilder {
-	b.hostGetter = hostGetter
+func (b *seagullClientBuilder) WithHost(host string) *seagullClientBuilder {
+	h, err := url.Parse(host)
+	if err != nil {
+		b.err = err
+	}
+	b.host = h
 	return b
 }
 
 func (b *seagullClientBuilder) Build() *seagullClient {
+	if b.err != nil {
+		panic(b.err)
+	}
 	if b.httpClient == nil {
 		panic("seagullClient requires an httpClient to be set")
 	}
-	if b.hostGetter == nil {
-		panic("seagullClient requires a hostGetter to be set")
+	if b.host == nil {
+		panic("seagullClient requires a host to be set")
 	}
 	return &seagullClient{
 		httpClient: b.httpClient,
-		hostGetter: b.hostGetter,
+		host:       *b.host,
 	}
 }
 
 func (client *seagullClient) GetPrivatePair(userID, hashName, token string) *PrivatePair {
 	host := client.getHost()
-	if host == nil {
-		return nil
-	}
 	host.Path = path.Join(host.Path, userID, "private", hashName)
 
-	req, _ := http.NewRequest("GET", host.String(), nil)
+	req, err := http.NewRequest("GET", host.String(), nil)
+	if err != nil {
+		panic(err)
+	}
 	req.Header.Add("x-tidepool-session-token", token)
 
-	log.Println(req)
 	res, err := client.httpClient.Do(req)
 	if err != nil {
 		log.Printf("Problem when looking up private pair for userID[%s]. %s", userID, err)
@@ -104,12 +110,12 @@ func (client *seagullClient) GetPrivatePair(userID, hashName, token string) *Pri
 
 func (client *seagullClient) GetCollection(userID, collectionName, token string, v interface{}) error {
 	host := client.getHost()
-	if host == nil {
-		return nil
-	}
 	host.Path = path.Join(host.Path, userID, collectionName)
 
-	req, _ := http.NewRequest("GET", host.String(), nil)
+	req, err := http.NewRequest("GET", host.String(), nil)
+	if err != nil {
+		panic(err)
+	}
 	req.Header.Add("x-tidepool-session-token", token)
 
 	log.Println(req)
@@ -131,17 +137,11 @@ func (client *seagullClient) GetCollection(userID, collectionName, token string,
 		log.Printf("No [%s] collection found for [%s]", collectionName, userID)
 		return nil
 	default:
-		return &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+		return &status.StatusError{Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 
 }
 
-func (client *seagullClient) getHost() *url.URL {
-	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
-		cpy := new(url.URL)
-		*cpy = hostArr[0]
-		return cpy
-	} else {
-		return nil
-	}
+func (client *seagullClient) getHost() url.URL {
+	return client.host
 }

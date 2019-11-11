@@ -6,8 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
-	"github.com/tidepool-org/go-common/clients/disc"
 )
 
 const name = "test"
@@ -34,7 +32,7 @@ func TestStart(t *testing.T) {
 	defer srvr.Close()
 
 	shorelineClient := NewShorelineClientBuilder().
-		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
+		WithHost(srvr.URL).
 		WithName("test").
 		WithSecret("howdy ho, neighbor joe").
 		WithTokenRefreshInterval(10 * time.Millisecond).
@@ -72,7 +70,7 @@ func TestLogin(t *testing.T) {
 	defer srvr.Close()
 
 	shorelineClient := NewShorelineClientBuilder().
-		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
+		WithHost(srvr.URL).
 		WithName("test").
 		WithSecret("howdy ho, neighbor joe").
 		Build()
@@ -110,7 +108,7 @@ func TestSignup(t *testing.T) {
 	defer srvr.Close()
 
 	client := NewShorelineClientBuilder().
-		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
+		WithHost(srvr.URL).
 		WithName("test").
 		WithSecret("howdy ho, neighbor joe").
 		Build()

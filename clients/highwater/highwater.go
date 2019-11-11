@@ -8,8 +8,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-
-	"github.com/tidepool-org/go-common/clients/disc"
 )
 
 // Client interface that we will implement and mock
@@ -20,15 +18,16 @@ type Client interface {
 }
 
 type HighwaterClient struct {
-	hostGetter disc.HostGetter
+	host       url.URL
 	config     *HighwaterClientConfig
 	httpClient *http.Client
 }
 
 type HighwaterClientBuilder struct {
-	hostGetter disc.HostGetter
+	host       *url.URL
 	config     *HighwaterClientConfig
 	httpClient *http.Client
+	err        error
 }
 
 type HighwaterClientConfig struct {
@@ -43,8 +42,12 @@ func NewHighwaterClientBuilder() *HighwaterClientBuilder {
 	}
 }
 
-func (b *HighwaterClientBuilder) WithHostGetter(val disc.HostGetter) *HighwaterClientBuilder {
-	b.hostGetter = val
+func (b *HighwaterClientBuilder) WithHost(host string) *HighwaterClientBuilder {
+	h, err := url.Parse(host)
+	if err != nil {
+		b.err = err
+	}
+	b.host = h
 	return b
 }
 
@@ -73,8 +76,12 @@ func (b *HighwaterClientBuilder) WithConfig(val *HighwaterClientConfig) *Highwat
 }
 
 func (b *HighwaterClientBuilder) Build() *HighwaterClient {
-	if b.hostGetter == nil {
-		panic("HighwaterClient requires a hostGetter to be set")
+	if b.err != nil {
+		panic(b.err)
+	}
+
+	if b.host == nil {
+		panic("HighwaterClient requires a host to be set")
 	}
 	if b.config.Name == "" {
 		panic("HighwaterClient requires a name to be set")
@@ -92,20 +99,14 @@ func (b *HighwaterClientBuilder) Build() *HighwaterClient {
 	}
 
 	return &HighwaterClient{
-		hostGetter: b.hostGetter,
+		host:       *b.host,
 		httpClient: b.httpClient,
 		config:     b.config,
 	}
 }
 
-func (client *HighwaterClient) getHost() *url.URL {
-	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
-		cpy := new(url.URL)
-		*cpy = hostArr[0]
-		return cpy
-	} else {
-		return nil
-	}
+func (client *HighwaterClient) getHost() url.URL {
+	return client.host
 }
 
 func (client *HighwaterClient) adjustEventName(name string) string {
@@ -128,16 +129,13 @@ func (client *HighwaterClient) adjustEventParams(params map[string]string) []byt
 }
 
 func (client *HighwaterClient) PostServer(eventName, token string, params map[string]string) {
-
 	host := client.getHost()
-	if host == nil {
-		log.Println("No known highwater hosts.")
-		return
-	}
-
 	host.Path = path.Join(host.Path, "server", client.config.Name, client.adjustEventName(eventName))
 
-	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	req, err := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	if err != nil {
+		panic(err)
+	}
 	req.Header.Add("x-tidepool-session-token", token)
 
 	res, err := client.httpClient.Do(req)
@@ -153,14 +151,12 @@ func (client *HighwaterClient) PostServer(eventName, token string, params map[st
 
 func (client *HighwaterClient) PostThisUser(eventName, token string, params map[string]string) {
 	host := client.getHost()
-	if host == nil {
-		log.Println("No known highwater hosts.")
-		return
-	}
-
 	host.Path = path.Join(host.Path, "thisuser", client.adjustEventName(eventName))
 
-	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	req, err := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	if err != nil {
+		panic(err)
+	}
 	req.Header.Add("x-tidepool-session-token", token)
 
 	res, err := client.httpClient.Do(req)
@@ -176,14 +172,12 @@ func (client *HighwaterClient) PostThisUser(eventName, token string, params map[
 
 func (client *HighwaterClient) PostWithUser(userId, eventName, token string, params map[string]string) {
 	host := client.getHost()
-	if host == nil {
-		log.Println("No known highwater hosts.")
-		return
-	}
-
 	host.Path = path.Join(host.Path, "user", userId, client.adjustEventName(eventName))
 
-	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	req, err := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	if err != nil {
+		panic(err)
+	}
 	req.Header.Add("x-tidepool-session-token", token)
 
 	if _, err := client.httpClient.Do(req); err != nil {

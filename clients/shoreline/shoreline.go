@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tidepool-org/go-common/clients/disc"
 	"github.com/tidepool-org/go-common/clients/status"
 	"github.com/tidepool-org/go-common/errors"
 	"github.com/tidepool-org/go-common/jepson"
@@ -35,8 +34,8 @@ type Client interface {
 // ShorelineClient manages the local data for a client. A client is intended to be shared among multiple
 // goroutines so it's OK to treat it as a singleton (and probably a good idea).
 type ShorelineClient struct {
+	host       url.URL
 	httpClient *http.Client           // store a reference to the http client so we can reuse it
-	hostGetter disc.HostGetter        // The getter that provides the host to talk to for the client
 	config     *ShorelineClientConfig // Configuration for the client
 
 	mut         sync.Mutex
@@ -77,9 +76,10 @@ type TokenData struct {
 }
 
 type ShorelineClientBuilder struct {
-	hostGetter disc.HostGetter
+	host       *url.URL
 	config     *ShorelineClientConfig
 	httpClient *http.Client
+	err        error
 }
 
 func (u *UserData) IsCustodial() bool {
@@ -111,8 +111,12 @@ func NewShorelineClientBuilder() *ShorelineClientBuilder {
 	}
 }
 
-func (b *ShorelineClientBuilder) WithHostGetter(val disc.HostGetter) *ShorelineClientBuilder {
-	b.hostGetter = val
+func (b *ShorelineClientBuilder) WithHost(host string) *ShorelineClientBuilder {
+	h, err := url.Parse(host)
+	if err != nil {
+		b.err = err
+	}
+	b.host = h
 	return b
 }
 
@@ -140,9 +144,13 @@ func (b *ShorelineClientBuilder) WithConfig(val *ShorelineClientConfig) *Shoreli
 	return b.WithName(val.Name).WithSecret(val.Secret).WithTokenRefreshInterval(time.Duration(val.TokenRefreshInterval))
 }
 
+// Build the shoreline client
 func (b *ShorelineClientBuilder) Build() *ShorelineClient {
-	if b.hostGetter == nil {
-		panic("shorelineClient requires a hostGetter to be set")
+	if b.err != nil {
+		panic(b.err)
+	}
+	if b.host == nil {
+		panic("shorelineClient requires a host to be set")
 	}
 	if b.config.Name == "" {
 		panic("shorelineClient requires a name to be set")
@@ -156,7 +164,7 @@ func (b *ShorelineClientBuilder) Build() *ShorelineClient {
 	}
 
 	return &ShorelineClient{
-		hostGetter: b.hostGetter,
+		host:       *b.host,
 		httpClient: b.httpClient,
 		config:     b.config,
 
@@ -190,6 +198,7 @@ func (client *ShorelineClient) Start() error {
 	return nil
 }
 
+// Close the client
 func (client *ShorelineClient) Close() {
 	twoWay := make(chan bool)
 	client.closed <- twoWay
@@ -205,13 +214,13 @@ func (client *ShorelineClient) Close() {
 // successful, it stores the returned token in ServerToken.
 func (client *ShorelineClient) serverLogin() error {
 	host := client.getHost()
-	if host == nil {
-		return errors.New("No known user-api hosts")
-	}
-
 	host.Path = path.Join(host.Path, "serverlogin")
 
-	req, _ := http.NewRequest("POST", host.String(), nil)
+	req, err := http.NewRequest("POST", host.String(), nil)
+	if err != nil {
+		panic(err)
+	}
+
 	req.Header.Add("x-tidepool-server-name", client.config.Name)
 	req.Header.Add("x-tidepool-server-secret", client.config.Secret)
 
@@ -223,7 +232,7 @@ func (client *ShorelineClient) serverLogin() error {
 
 	if res.StatusCode != 200 {
 		return &status.StatusError{
-			status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 	token := res.Header.Get("x-tidepool-session-token")
 
@@ -242,18 +251,17 @@ func extractUserData(r io.Reader) (*UserData, error) {
 	return &ud, nil
 }
 
-// Signs up a new platfrom user
+// Signup a new platfrom user
 // Returns a UserData object if successful
 func (client *ShorelineClient) Signup(username, password, email string) (*UserData, error) {
 	host := client.getHost()
-	if host == nil {
-		return nil, errors.New("No known user-api hosts.")
-	}
-
 	host.Path = path.Join(host.Path, "user")
 	data := []byte(fmt.Sprintf(`{"username": "%s", "password": "%s","emails":["%s"]}`, username, password, email))
 
-	req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", host.String(), bytes.NewBuffer(data))
+	if err != nil {
+		panic(err)
+	}
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
@@ -261,30 +269,29 @@ func (client *ShorelineClient) Signup(username, password, email string) (*UserDa
 	}
 	defer res.Body.Close()
 
-	switch res.StatusCode {
-	case http.StatusCreated:
-		ud, err := extractUserData(res.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		return ud, nil
-	default:
-		return nil, &status.StatusError{status.NewStatus(res.StatusCode, "There was an issue trying to signup a new user")}
+	if res.StatusCode != http.StatusCreated {
+		return nil, &status.StatusError{Status: status.NewStatus(res.StatusCode, "There was an issue trying to signup a new user")}
 	}
+
+	ud, err := extractUserData(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return ud, nil
 }
 
 // Login logs in a user with a username and password. Returns a UserData object if successful
 // and also stores the returned login token into ClientToken.
 func (client *ShorelineClient) Login(username, password string) (*UserData, string, error) {
 	host := client.getHost()
-	if host == nil {
-		return nil, "", errors.New("No known user-api hosts.")
-	}
-
 	host.Path = path.Join(host.Path, "login")
 
-	req, _ := http.NewRequest("POST", host.String(), nil)
+	req, err := http.NewRequest("POST", host.String(), nil)
+	if err != nil {
+		panic(err)
+	}
+
 	req.SetBasicAuth(username, password)
 
 	res, err := client.httpClient.Do(req)
@@ -305,7 +312,7 @@ func (client *ShorelineClient) Login(username, password string) (*UserData, stri
 		return nil, "", nil
 	default:
 		return nil, "", &status.StatusError{
-			status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 }
 
@@ -313,13 +320,13 @@ func (client *ShorelineClient) Login(username, password string) (*UserData, stri
 // if so, it returns the data encoded in the token.
 func (client *ShorelineClient) CheckToken(token string) *TokenData {
 	host := client.getHost()
-	if host == nil {
-		return nil
-	}
-
 	host.Path = path.Join(host.Path, "token", token)
 
-	req, _ := http.NewRequest("GET", host.String(), nil)
+	req, err := http.NewRequest("GET", host.String(), nil)
+	if err != nil {
+		panic(err)
+	}
+
 	req.Header.Add("x-tidepool-session-token", client.serverToken)
 
 	res, err := client.httpClient.Do(req)
@@ -345,6 +352,7 @@ func (client *ShorelineClient) CheckToken(token string) *TokenData {
 	}
 }
 
+// TokenProvide provides the current server token
 func (client *ShorelineClient) TokenProvide() string {
 	client.mut.Lock()
 	defer client.mut.Unlock()
@@ -352,17 +360,17 @@ func (client *ShorelineClient) TokenProvide() string {
 	return client.serverToken
 }
 
-// Get user details for the given user
+// GetUser details for the given user
 // In this case the userID could be the actual ID or an email address
 func (client *ShorelineClient) GetUser(userID, token string) (*UserData, error) {
 	host := client.getHost()
-	if host == nil {
-		return nil, errors.New("No known user-api hosts.")
-	}
-
 	host.Path = path.Join(host.Path, "user", userID)
 
-	req, _ := http.NewRequest("GET", host.String(), nil)
+	req, err := http.NewRequest("GET", host.String(), nil)
+	if err != nil {
+		panic(err)
+	}
+
 	req.Header.Add("x-tidepool-session-token", token)
 
 	res, err := client.httpClient.Do(req)
@@ -382,55 +390,50 @@ func (client *ShorelineClient) GetUser(userID, token string) (*UserData, error) 
 		return &UserData{}, nil
 	default:
 		return nil, &status.StatusError{
-			status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 }
 
-// Get user details for the given user
+// UpdateUser gets user details for the given user
 // In this case the userID could be the actual ID or an email address
 func (client *ShorelineClient) UpdateUser(userID string, userUpdate UserUpdate, token string) error {
 	host := client.getHost()
-	if host == nil {
-		return errors.New("No known user-api hosts.")
-	}
+	host.Path = path.Join(host.Path, "user", userID)
 
 	//structure that the update are given to us in
 	type updatesToApply struct {
 		Updates UserUpdate `json:"updates"`
 	}
 
-	host.Path = path.Join(host.Path, "user", userID)
+	jsonUser, err := json.Marshal(updatesToApply{Updates: userUpdate})
 
-	if jsonUser, err := json.Marshal(updatesToApply{Updates: userUpdate}); err != nil {
+	if err != nil {
 		return &status.StatusError{
-			status.NewStatusf(http.StatusInternalServerError, "Error getting user updates [%s]", err.Error())}
-	} else {
+			Status: status.NewStatusf(http.StatusInternalServerError, "Error getting user updates [%s]", err.Error())}
+	}
 
-		req, _ := http.NewRequest("PUT", host.String(), bytes.NewBuffer(jsonUser))
-		req.Header.Add("x-tidepool-session-token", token)
+	req, err := http.NewRequest("PUT", host.String(), bytes.NewBuffer(jsonUser))
+	if err != nil {
+		panic(err)
+	}
 
-		res, err := client.httpClient.Do(req)
-		if err != nil {
-			return errors.Wrap(err, "Failure to get a user")
-		}
-		defer res.Body.Close()
+	req.Header.Add("x-tidepool-session-token", token)
 
-		switch res.StatusCode {
-		case http.StatusOK:
-			return nil
-		default:
-			return &status.StatusError{
-				status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
-		}
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "Failure to get a user")
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusOK:
+		return nil
+	default:
+		return &status.StatusError{
+			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 }
 
-func (client *ShorelineClient) getHost() *url.URL {
-	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
-		cpy := new(url.URL)
-		*cpy = hostArr[0]
-		return cpy
-	} else {
-		return nil
-	}
+func (client *ShorelineClient) getHost() url.URL {
+	return client.host
 }

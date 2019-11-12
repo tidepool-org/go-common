@@ -48,6 +48,7 @@ type ShorelineClientConfig struct {
 	Name                 string          `json:"name"`                 // The name of this server for use in obtaining a server token
 	Secret               string          `json:"secret"`               // The secret used along with the name to obtain a server token
 	TokenRefreshInterval jepson.Duration `json:"tokenRefreshInterval"` // The amount of time between refreshes of the server token
+	TokenRetryInterval   jepson.Duration `json:"tokenRetryInterval"`   // The amount of time after unsuccessful refresh attempt
 }
 
 // UserData is the data structure returned from a successful Login query.
@@ -108,6 +109,7 @@ func NewShorelineClientBuilder() *ShorelineClientBuilder {
 	return &ShorelineClientBuilder{
 		config: &ShorelineClientConfig{
 			TokenRefreshInterval: jepson.Duration(6 * time.Hour),
+			TokenRetryInterval:   jepson.Duration(5 * time.Second),
 		},
 	}
 }
@@ -138,6 +140,11 @@ func (b *ShorelineClientBuilder) WithSecret(val string) *ShorelineClientBuilder 
 
 func (b *ShorelineClientBuilder) WithTokenRefreshInterval(val time.Duration) *ShorelineClientBuilder {
 	b.config.TokenRefreshInterval = jepson.Duration(val)
+	return b
+}
+
+func (b *ShorelineClientBuilder) WithTokenRetryInterval(val time.Duration) *ShorelineClientBuilder {
+	b.config.TokenRetryInterval = jepson.Duration(val)
 	return b
 }
 
@@ -184,27 +191,28 @@ func (client *ShorelineClient) IsReady() error {
 // Start starts the client and makes it ready for us.  This must be done before using any of the functionality
 // that requires a server token
 func (client *ShorelineClient) Start() error {
-	if err := client.serverLogin(); err != nil {
-		log.Printf("Problem with initial server token acquisition, [%v]", err)
-	}
-
 	go func() {
+		duration := time.Duration(0 * time.Second)
 		for {
-			var duration time.Duration
-			if client.IsReady() == nil {
-				duration = time.Duration(client.config.TokenRefreshInterval)
-			} else {
-				duration = time.Duration(5 * time.Second)
-			}
-
 			timer := time.After(duration)
 			select {
 			case twoWay := <-client.closed:
 				twoWay <- true
 				return
 			case <-timer:
-				if err := client.serverLogin(); err != nil {
-					log.Print("Error when refreshing server login", err)
+				if client.IsReady() != nil {
+					if err := client.serverLogin(); err == nil {
+						log.Printf("obtained server token")
+					}
+				} else {
+					if err := client.serverLogin(); err != nil {
+						log.Print("failed to refresh server token", err)
+					}
+				}
+				if client.IsReady() == nil {
+					duration = time.Duration(client.config.TokenRefreshInterval)
+				} else {
+					duration = time.Duration(client.config.TokenRetryInterval)
 				}
 			}
 		}

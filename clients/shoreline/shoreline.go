@@ -5,6 +5,7 @@ package shoreline
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -29,6 +30,7 @@ type Client interface {
 	TokenProvide() string
 	GetUser(userID, token string) (*UserData, error)
 	UpdateUser(userID string, userUpdate UserUpdate, token string) error
+	IsReady() error
 }
 
 // ShorelineClient manages the local data for a client. A client is intended to be shared among multiple
@@ -172,12 +174,19 @@ func (b *ShorelineClientBuilder) Build() *ShorelineClient {
 	}
 }
 
+// IsReady returns an error if the shoreline client does not possess a server token
+func (client *ShorelineClient) IsReady() error {
+	if client.serverToken == "" {
+		return errors.New("server login incomplete")
+	}
+	return nil
+}
+
 // Start starts the client and makes it ready for us.  This must be done before using any of the functionality
 // that requires a server token
 func (client *ShorelineClient) Start() error {
 	if err := client.serverLogin(); err != nil {
 		log.Printf("Problem with initial server token acquisition, [%v]", err)
-		panic(err)
 	}
 
 	go func() {
@@ -190,7 +199,6 @@ func (client *ShorelineClient) Start() error {
 			case <-timer:
 				if err := client.serverLogin(); err != nil {
 					log.Print("Error when refreshing server login", err)
-					panic(err)
 				}
 			}
 		}

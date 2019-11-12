@@ -175,7 +175,7 @@ func (b *ShorelineClientBuilder) Build() *ShorelineClient {
 
 // IsReady returns an error if the shoreline client does not possess a server token
 func (client *ShorelineClient) IsReady() error {
-	if client.serverToken == "" {
+	if client.TokenProvide() == "" {
 		return errors.New("server login incomplete")
 	}
 	return nil
@@ -190,7 +190,14 @@ func (client *ShorelineClient) Start() error {
 
 	go func() {
 		for {
-			timer := time.After(time.Duration(client.config.TokenRefreshInterval))
+			var duration time.Duration
+			if client.IsReady() == nil {
+				duration = time.Duration(client.config.TokenRefreshInterval)
+			} else {
+				duration = time.Duration(5 * time.Second)
+			}
+
+			timer := time.After(duration)
 			select {
 			case twoWay := <-client.closed:
 				twoWay <- true

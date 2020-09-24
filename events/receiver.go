@@ -27,7 +27,7 @@ func NewKafkaCloudEventsConsumer(config *KafkaConfig) (*KafkaCloudEventsConsumer
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.Version = sarama.V2_0_0_0
 
-	consumer, err := kafka_sarama.NewConsumer([]string{config.Broker}, saramaConfig, config.ConsumerGroup, config.FinalTopic)
+	consumer, err := kafka_sarama.NewConsumer([]string{config.Broker}, saramaConfig, config.ConsumerGroup, config.GetTopic())
 	if err != nil {
 		return nil, err
 	}

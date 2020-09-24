@@ -21,7 +21,7 @@ func NewKafkaCloudEventsProducer(config *KafkaConfig) (*KafkaCloudEventsProducer
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.Version = sarama.V2_0_0_0
 
-	sender, err := kafka_sarama.NewSender([]string{config.Broker}, saramaConfig, config.FinalTopic)
+	sender, err := kafka_sarama.NewSender([]string{config.Broker}, saramaConfig, config.GetTopic())
 	if err != nil {
 		return nil, err
 	}

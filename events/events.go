@@ -92,7 +92,3 @@ var _ UserEventsHandler = &NoopUserEventsHandler{}
 func (d *NoopUserEventsHandler) HandleUpdateUserEvent(payload UpdateUserEventPayload) {}
 func (d *NoopUserEventsHandler) HandleCreateUserEvent(payload CreateUserEventPayload) {}
 func (d *NoopUserEventsHandler) HandleDeleteUserEvent(payload DeleteUserEventPayload) {}
-
-type MarketoUserEventHandler struct {
-	NoopUserEventsHandler
-}

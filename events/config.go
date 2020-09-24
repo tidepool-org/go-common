@@ -7,7 +7,6 @@ type KafkaConfig struct {
 	Prefix        string `envconfig:"KAFKA_PREFIX" required:"false"`
 	BaseTopic     string `envconfig:"KAFKA_TOPIC" default:"events"`
 	ConsumerGroup string `envconfig:"KAFKA_CONSUMER_GROUP" required:"false"`
-	FinalTopic    string
 }
 
 func (k *KafkaConfig) LoadFromEnv() error {

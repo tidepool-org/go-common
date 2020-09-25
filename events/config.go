@@ -10,7 +10,7 @@ type KafkaConfig struct {
 }
 
 func (k *KafkaConfig) LoadFromEnv() error {
-	if err := envconfig.Process("", &k); err != nil {
+	if err := envconfig.Process("", k); err != nil {
 		return err
 	}
 	return nil

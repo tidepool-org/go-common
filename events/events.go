@@ -52,13 +52,16 @@ type UserEventsHandler interface {
 	HandleDeleteUserEvent(payload DeleteUserEvent)
 }
 
-var _ EventHandler = &DelegatingUserEventsHandler{}
+func NewUserEventsHandler(delegate UserEventsHandler) EventHandler {
+	return &delegatingUserEventsHandler{delegate: delegate}
+}
 
-type DelegatingUserEventsHandler struct {
+var _ EventHandler = &delegatingUserEventsHandler{}
+type delegatingUserEventsHandler struct {
 	delegate UserEventsHandler
 }
 
-func (d *DelegatingUserEventsHandler) CanHandle(ce cloudevents.Event) bool {
+func (d *delegatingUserEventsHandler) CanHandle(ce cloudevents.Event) bool {
 	switch ce.Type() {
 	case CreateUserEventType, UpdateUserEventType, DeleteUserEventType:
 		return true
@@ -67,7 +70,7 @@ func (d *DelegatingUserEventsHandler) CanHandle(ce cloudevents.Event) bool {
 	}
 }
 
-func (d *DelegatingUserEventsHandler) Handle(ce cloudevents.Event) error {
+func (d *delegatingUserEventsHandler) Handle(ce cloudevents.Event) error {
 	switch ce.Type() {
 	case CreateUserEventType:
 		payload := CreateUserEvent{}
@@ -92,7 +95,6 @@ func (d *DelegatingUserEventsHandler) Handle(ce cloudevents.Event) error {
 }
 
 type NoopUserEventsHandler struct{}
-
 var _ UserEventsHandler = &NoopUserEventsHandler{}
 
 func (d *NoopUserEventsHandler) HandleUpdateUserEvent(payload UpdateUserEvent) {}

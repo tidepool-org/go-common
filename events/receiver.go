@@ -26,6 +26,7 @@ type KafkaCloudEventsConsumer struct {
 func NewKafkaCloudEventsConsumer(config *KafkaConfig) (*KafkaCloudEventsConsumer, error) {
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.Version = sarama.V2_0_0_0
+	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 
 	consumer, err := kafka_sarama.NewConsumer([]string{config.Broker}, saramaConfig, config.ConsumerGroup, config.GetTopic())
 	if err != nil {

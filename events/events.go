@@ -3,6 +3,7 @@ package events
 import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/tidepool-org/go-common/clients/shoreline"
+	"log"
 )
 
 const (
@@ -91,6 +92,18 @@ func (d *delegatingUserEventsHandler) Handle(ce cloudevents.Event) error {
 		}
 		d.delegate.HandleDeleteUserEvent(payload)
 	}
+	return nil
+}
+
+type DebugEventHandler struct {}
+var _ EventHandler = &DebugEventHandler{}
+
+func (d *DebugEventHandler) CanHandle(ce cloudevents.Event) bool {
+	return true
+}
+
+func (d *DebugEventHandler) Handle(ce cloudevents.Event) error {
+	log.Printf("Received event %v\n", ce)
 	return nil
 }
 

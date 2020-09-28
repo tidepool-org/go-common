@@ -18,28 +18,34 @@ type EventConsumer interface {
 }
 
 var _ EventConsumer = &KafkaCloudEventsConsumer{}
+
 type KafkaCloudEventsConsumer struct {
-	client cloudevents.Client
+	client   cloudevents.Client
+	consumer *kafka_sarama.Consumer
 	handlers []EventHandler
 }
 
-func NewKafkaCloudEventsConsumer(config *KafkaConfig) (*KafkaCloudEventsConsumer, error) {
-	saramaConfig := sarama.NewConfig()
-	saramaConfig.Version = sarama.V2_0_0_0
-	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+func NewKafkaCloudEventsConsumer(config *CloudEventsConfig) (*KafkaCloudEventsConsumer, error) {
+	saramaConfig := config.SaramaConfig
+	if saramaConfig == nil {
+		saramaConfig = sarama.NewConfig()
+		saramaConfig.Version = sarama.V2_4_0_0
+		saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	}
 
-	consumer, err := kafka_sarama.NewConsumer([]string{config.Broker}, saramaConfig, config.ConsumerGroup, config.GetTopic())
+	consumer, err := kafka_sarama.NewConsumer([]string{config.KafkaBroker}, saramaConfig, config.KafkaConsumerGroup, config.GetTopic())
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := cloudevents.NewClient(consumer, cloudevents.WithTimeNow(), cloudevents.WithUUIDs())
+	client, err := cloudevents.NewClient(consumer, cloudevents.WithTimeNow(), cloudevents.WithUUIDs())
 	if err != nil {
 		return nil, err
 	}
 
 	return &KafkaCloudEventsConsumer{
-		client: c,
+		client:   client,
+		consumer: consumer,
 		handlers: make([]EventHandler, 0),
 	}, nil
 }
@@ -49,6 +55,7 @@ func (k *KafkaCloudEventsConsumer) RegisterHandler(handler EventHandler) {
 }
 
 func (k *KafkaCloudEventsConsumer) Start(ctx context.Context) error {
+	defer k.consumer.Close(context.Background())
 	return k.client.StartReceiver(ctx, k.receive)
 }
 

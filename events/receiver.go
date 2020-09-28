@@ -5,6 +5,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/cloudevents/sdk-go/v2/protocol"
 )
 
 type EventHandler interface {
@@ -59,10 +60,12 @@ func (k *KafkaCloudEventsConsumer) Start(ctx context.Context) error {
 	return k.client.StartReceiver(ctx, k.receive)
 }
 
-func (k *KafkaCloudEventsConsumer) receive(ce cloudevents.Event) {
+func (k *KafkaCloudEventsConsumer) receive(ce cloudevents.Event) protocol.Result {
 	for _, handler := range k.handlers {
 		if handler.CanHandle(ce) {
 			_ = handler.Handle(ce)
 		}
 	}
+
+	return protocol.ResultACK
 }

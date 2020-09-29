@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"github.com/Shopify/sarama"
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
@@ -21,13 +20,8 @@ func NewKafkaCloudEventsProducer(config *CloudEventsConfig) (*KafkaCloudEventsPr
 	if err := validateProducerConfig(config); err != nil {
 		return nil, err
 	}
-	saramaConfig := config.SaramaConfig
-	if saramaConfig == nil {
-		saramaConfig = sarama.NewConfig()
-		saramaConfig.Version = sarama.V2_4_0_0
-	}
 
-	sender, err := kafka_sarama.NewSender([]string{config.KafkaBroker}, saramaConfig, config.GetTopic())
+	sender, err := kafka_sarama.NewSender(config.KafkaBrokers, config.SaramaConfig, config.GetPrefixedTopic())
 	if err != nil {
 		return nil, err
 	}

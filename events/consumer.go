@@ -18,14 +18,11 @@ type SaramaConsumer struct {
 }
 
 func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, error) {
-	saramaConfig := config.SaramaConfig
-	if saramaConfig == nil {
-		saramaConfig = sarama.NewConfig()
-		saramaConfig.Version = sarama.V2_4_0_0
-		saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	if err := validateConsumerConfig(config); err != nil {
+		return nil, err
 	}
 
-	cg, err := sarama.NewConsumerGroup([]string{config.KafkaBroker}, config.KafkaConsumerGroup, saramaConfig)
+	cg, err := sarama.NewConsumerGroup(config.KafkaBrokers, config.KafkaConsumerGroup, config.SaramaConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +30,7 @@ func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, err
 	return &SaramaConsumer{
 		cg: cg,
 		ready: make(chan bool),
-		topic: config.GetTopic(),
+		topic: config.GetPrefixedTopic(),
 		handlers: make([]EventHandler, 0),
 	}, nil
 }
@@ -51,6 +48,7 @@ func (s *SaramaConsumer) Cleanup(session sarama.ConsumerGroupSession) error {
 func (s *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
 		m := kafka_sarama.NewMessageFromConsumerMessage(message)
+		// just ignore non-cloud event messages
 		if rs, rserr := binding.ToEvent(context.Background(), m); rserr == nil {
 			s.handleCloudEvent(*rs)
 		}

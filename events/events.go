@@ -14,6 +14,7 @@ const (
 
 type Event interface {
 	GetEventType() string
+	GetEventKey() string
 }
 
 var _ Event = DeleteUserEvent{}
@@ -26,14 +27,22 @@ func (d DeleteUserEvent) GetEventType() string {
 	return DeleteUserEventType
 }
 
+func (d DeleteUserEvent) GetEventKey() string {
+	return d.UserID
+}
+
 var _ Event = CreateUserEvent{}
 
 type CreateUserEvent struct {
 	shoreline.UserData `json:",inline"`
 }
 
-func (d CreateUserEvent) GetEventType() string {
+func (c CreateUserEvent) GetEventType() string {
 	return CreateUserEventType
+}
+
+func (c CreateUserEvent) GetEventKey() string {
+	return c.UserID
 }
 
 var _ Event = UpdateUserEvent{}
@@ -43,8 +52,12 @@ type UpdateUserEvent struct {
 	Updated  shoreline.UserData `json:"updated"`
 }
 
-func (d UpdateUserEvent) GetEventType() string {
+func (u UpdateUserEvent) GetEventType() string {
 	return UpdateUserEventType
+}
+
+func (u UpdateUserEvent) GetEventKey() string {
+	return u.Original.UserID
 }
 
 type UserEventsHandler interface {

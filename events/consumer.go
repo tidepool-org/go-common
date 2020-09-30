@@ -11,10 +11,11 @@ import (
 )
 
 type SaramaConsumer struct {
-	cg sarama.ConsumerGroup
-	ready chan bool
-	topic string
-	handlers []EventHandler
+	consumerGroup      sarama.ConsumerGroup
+	ready              chan bool
+	topic              string
+	handlers           []EventHandler
+	deadLetterProducer *KafkaCloudEventsProducer
 }
 
 func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, error) {
@@ -27,12 +28,24 @@ func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, err
 		return nil, err
 	}
 
+	deadLetterProducerConfig := newDeadLetterProducerConfig(*config)
+	deadLetterProducer, err := NewKafkaCloudEventsProducer(&deadLetterProducerConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	return &SaramaConsumer{
-		cg: cg,
-		ready: make(chan bool),
-		topic: config.GetPrefixedTopic(),
-		handlers: make([]EventHandler, 0),
+		consumerGroup:      cg,
+		ready:              make(chan bool),
+		topic:              config.GetPrefixedTopic(),
+		handlers:           make([]EventHandler, 0),
+		deadLetterProducer: deadLetterProducer,
 	}, nil
+}
+
+func newDeadLetterProducerConfig(config CloudEventsConfig) CloudEventsConfig {
+	config.KafkaTopic = config.KafkaTopic + DeadLetterSuffix
+	return config
 }
 
 func (s *SaramaConsumer) Setup(session sarama.ConsumerGroupSession) error {
@@ -59,10 +72,23 @@ func (s *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 }
 
 func (s *SaramaConsumer) handleCloudEvent(ce cloudevents.Event) {
+	var errors []error
 	for _, handler := range s.handlers {
 		if handler.CanHandle(ce) {
-			_ = handler.Handle(ce)
+			if err := handler.Handle(ce); err != nil {
+				errors = append(errors, err)
+			}
 		}
+	}
+	if len(errors) != 0 {
+		log.Printf("Sending event %v to dead-letter topic due to handler error(s): %v", ce.ID(), errors)
+		s.sendToDeadLetterTopic(ce)
+	}
+}
+
+func (s *SaramaConsumer) sendToDeadLetterTopic(ce cloudevents.Event) {
+	if err := s.deadLetterProducer.SendCloudEvent(context.Background(), ce); err != nil {
+		log.Printf("Failed to send event %v to dead-letter topic: %v", ce, err)
 	}
 }
 
@@ -80,7 +106,7 @@ func (s *SaramaConsumer) Start(ctx context.Context) error {
 			// `Consume` should be called inside an infinite loop, when a
 			// server-side rebalance happens, the consumer session will need to be
 			// recreated to get the new claims
-			if err := s.cg.Consume(ctx, []string{s.topic}, s); err != nil {
+			if err := s.consumerGroup.Consume(ctx, []string{s.topic}, s); err != nil {
 				log.Panicf("Error from consumer: %v", err)
 			}
 			// check if context was cancelled, signaling that the consumer should stop
@@ -92,5 +118,5 @@ func (s *SaramaConsumer) Start(ctx context.Context) error {
 	}()
 
 	wg.Wait()
-	return s.cg.Close()
+	return s.consumerGroup.Close()
 }

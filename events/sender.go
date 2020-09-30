@@ -2,8 +2,15 @@ package events
 
 import (
 	"context"
+	"github.com/Shopify/sarama"
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"time"
+)
+
+const (
+	producerRetryPeriod = 5 * time.Second
+	producerMaxRetries = 5
 )
 
 type EventProducer interface {
@@ -17,10 +24,6 @@ type KafkaCloudEventsProducer struct {
 }
 
 func NewKafkaCloudEventsProducer(config *CloudEventsConfig) (*KafkaCloudEventsProducer, error) {
-	if err := validateProducerConfig(config); err != nil {
-		return nil, err
-	}
-
 	sender, err := kafka_sarama.NewSender(config.KafkaBrokers, config.SaramaConfig, config.GetPrefixedTopic())
 	if err != nil {
 		return nil, err
@@ -43,7 +46,17 @@ func (c *KafkaCloudEventsProducer) Send(ctx context.Context, event Event) error 
 		return err
 	}
 
-	return c.client.Send(ctx, ce)
+	if key := event.GetEventKey(); key != "" {
+		ctx = kafka_sarama.WithMessageKey(ctx, sarama.StringEncoder(key))
+	}
+	return c.SendCloudEvent(ctx, ce)
+}
+
+func (c *KafkaCloudEventsProducer) SendCloudEvent(ctx context.Context, event cloudevents.Event) error {
+	return c.client.Send(
+		cloudevents.ContextWithRetriesExponentialBackoff(ctx, producerRetryPeriod,producerMaxRetries),
+		event,
+	)
 }
 
 func toCloudEvent(event Event, source string) (cloudevents.Event, error) {

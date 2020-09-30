@@ -6,8 +6,10 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+const DeadLetterSuffix = "-dead-letters"
+
 type CloudEventsConfig struct {
-	EventSource        string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"false"`
+	EventSource        string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"true"`
 	KafkaBrokers       []string `envconfig:"KAFKA_BROKERS" required:"true"`
 	KafkaConsumerGroup string   `envconfig:"KAFKA_CONSUMER_GROUP" required:"false"`
 	KafkaTopic         string   `envconfig:"KAFKA_TOPIC" default:"events"`
@@ -41,13 +43,6 @@ func (k *CloudEventsConfig) LoadFromEnv() error {
 
 func (k *CloudEventsConfig) GetPrefixedTopic() string {
 	return k.KafkaTopicPrefix + k.KafkaTopic
-}
-
-func validateProducerConfig(config *CloudEventsConfig) error {
-	if config.EventSource == "" {
-		return errors.New("event source cannot be empty")
-	}
-	return nil
 }
 
 func validateConsumerConfig(config *CloudEventsConfig) error {

@@ -5,6 +5,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/tidepool-org/go-common/errors"
 	"time"
 )
 
@@ -24,7 +25,18 @@ type KafkaCloudEventsProducer struct {
 }
 
 func NewKafkaCloudEventsProducer(config *CloudEventsConfig) (*KafkaCloudEventsProducer, error) {
-	sender, err := kafka_sarama.NewSender(config.KafkaBrokers, config.SaramaConfig, config.GetPrefixedTopic())
+	return newKafkaCloudEventsProducerWithTopic(config, config.GetPrefixedTopic())
+}
+
+func NewKafkaCloudEventsProducerForDeadLetters(config *CloudEventsConfig) (*KafkaCloudEventsProducer, error) {
+	if config.GetDeadLettersTopic() == "" {
+		return nil, errors.New("dead letters topic cannot be empty")
+	}
+	return newKafkaCloudEventsProducerWithTopic(config, config.GetDeadLettersTopic())
+}
+
+func newKafkaCloudEventsProducerWithTopic(config *CloudEventsConfig, topic string) (*KafkaCloudEventsProducer, error) {
+	sender, err := kafka_sarama.NewSender(config.KafkaBrokers, config.SaramaConfig, topic)
 	if err != nil {
 		return nil, err
 	}

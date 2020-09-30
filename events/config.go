@@ -9,14 +9,15 @@ import (
 const DeadLetterSuffix = "-dead-letters"
 
 type CloudEventsConfig struct {
-	EventSource        string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"true"`
-	KafkaBrokers       []string `envconfig:"KAFKA_BROKERS" required:"true"`
-	KafkaConsumerGroup string   `envconfig:"KAFKA_CONSUMER_GROUP" required:"false"`
-	KafkaTopic         string   `envconfig:"KAFKA_TOPIC" default:"events"`
-	KafkaTopicPrefix   string   `envconfig:"KAFKA_TOPIC_PREFIX" required:"true"`
-	KafkaRequireSSL    bool     `envconfig:"KAFKA_REQUIRE_SSL" required:"true"`
-	KafkaVersion       string   `envconfig:"KAFKA_VERSION" required:"true"`
-	SaramaConfig       *sarama.Config
+	EventSource           string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"true"`
+	KafkaBrokers          []string `envconfig:"KAFKA_BROKERS" required:"true"`
+	KafkaConsumerGroup    string   `envconfig:"KAFKA_CONSUMER_GROUP" required:"false"`
+	KafkaTopic            string   `envconfig:"KAFKA_TOPIC" default:"events"`
+	KafkaDeadLettersTopic string   `envconfig:"KAFKA_DEAD_LETTERS_TOPIC"`
+	KafkaTopicPrefix      string   `envconfig:"KAFKA_TOPIC_PREFIX" required:"true"`
+	KafkaRequireSSL       bool     `envconfig:"KAFKA_REQUIRE_SSL" required:"true"`
+	KafkaVersion          string   `envconfig:"KAFKA_VERSION" required:"true"`
+	SaramaConfig          *sarama.Config
 }
 
 func NewConfig() *CloudEventsConfig {
@@ -43,6 +44,17 @@ func (k *CloudEventsConfig) LoadFromEnv() error {
 
 func (k *CloudEventsConfig) GetPrefixedTopic() string {
 	return k.KafkaTopicPrefix + k.KafkaTopic
+}
+
+func (k *CloudEventsConfig) GetDeadLettersTopic() string {
+	if k.KafkaDeadLettersTopic == "" {
+		return k.KafkaDeadLettersTopic
+	}
+	return k.KafkaTopicPrefix + k.KafkaDeadLettersTopic
+}
+
+func (k *CloudEventsConfig) IsDeadLettersEnabled() bool {
+	return k.GetDeadLettersTopic() != ""
 }
 
 func validateConsumerConfig(config *CloudEventsConfig) error {

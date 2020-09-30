@@ -28,10 +28,12 @@ func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, err
 		return nil, err
 	}
 
-	deadLetterProducerConfig := newDeadLetterProducerConfig(*config)
-	deadLetterProducer, err := NewKafkaCloudEventsProducer(&deadLetterProducerConfig)
-	if err != nil {
-		return nil, err
+	var deadLetterProducer *KafkaCloudEventsProducer
+	if config.IsDeadLettersEnabled() {
+		deadLetterProducer, err = NewKafkaCloudEventsProducerForDeadLetters(config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &SaramaConsumer{

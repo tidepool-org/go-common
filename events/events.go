@@ -61,9 +61,9 @@ func (u UpdateUserEvent) GetEventKey() string {
 }
 
 type UserEventsHandler interface {
-	HandleUpdateUserEvent(payload UpdateUserEvent)
-	HandleCreateUserEvent(payload CreateUserEvent)
-	HandleDeleteUserEvent(payload DeleteUserEvent)
+	HandleUpdateUserEvent(payload UpdateUserEvent) error
+	HandleCreateUserEvent(payload CreateUserEvent) error
+	HandleDeleteUserEvent(payload DeleteUserEvent) error
 }
 
 func NewUserEventsHandler(delegate UserEventsHandler) EventHandler {
@@ -91,19 +91,19 @@ func (d *delegatingUserEventsHandler) Handle(ce cloudevents.Event) error {
 		if err := ce.DataAs(&payload); err != nil {
 			return err
 		}
-		d.delegate.HandleCreateUserEvent(payload)
+		return d.delegate.HandleCreateUserEvent(payload)
 	case UpdateUserEventType:
 		payload := UpdateUserEvent{}
 		if err := ce.DataAs(&payload); err != nil {
 			return err
 		}
-		d.delegate.HandleUpdateUserEvent(payload)
+		return d.delegate.HandleUpdateUserEvent(payload)
 	case DeleteUserEventType:
 		payload := DeleteUserEvent{}
 		if err := ce.DataAs(&payload); err != nil {
 			return err
 		}
-		d.delegate.HandleDeleteUserEvent(payload)
+		return d.delegate.HandleDeleteUserEvent(payload)
 	}
 	return nil
 }
@@ -123,6 +123,12 @@ func (d *DebugEventHandler) Handle(ce cloudevents.Event) error {
 type NoopUserEventsHandler struct{}
 var _ UserEventsHandler = &NoopUserEventsHandler{}
 
-func (d *NoopUserEventsHandler) HandleUpdateUserEvent(payload UpdateUserEvent) {}
-func (d *NoopUserEventsHandler) HandleCreateUserEvent(payload CreateUserEvent) {}
-func (d *NoopUserEventsHandler) HandleDeleteUserEvent(payload DeleteUserEvent) {}
+func (d *NoopUserEventsHandler) HandleUpdateUserEvent(payload UpdateUserEvent) error {
+	return nil
+}
+func (d *NoopUserEventsHandler) HandleCreateUserEvent(payload CreateUserEvent) error {
+	return nil
+}
+func (d *NoopUserEventsHandler) HandleDeleteUserEvent(payload DeleteUserEvent) error {
+	return nil
+}

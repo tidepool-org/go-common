@@ -40,6 +40,8 @@ func (k *CloudEventsConfig) LoadFromEnv() error {
 	k.SaramaConfig.Version = version
 	if k.KafkaRequireSSL {
 		k.SaramaConfig.Net.TLS.Enable = true
+		// Use the root CAs of the host
+		k.SaramaConfig.Net.TLS.Config.RootCAs = nil
 	}
 	if k.KafkaUsername != "" && k.KafkaPassword != "" {
 		k.SaramaConfig.Net.SASL.Enable = true

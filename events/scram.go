@@ -31,4 +31,3 @@ func (x *XDGSCRAMClient) Step(challenge string) (response string, err error) {
 func (x *XDGSCRAMClient) Done() bool {
 	return x.ClientConversation.Done()
 }
-

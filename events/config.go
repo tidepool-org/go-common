@@ -49,7 +49,7 @@ func (k *CloudEventsConfig) LoadFromEnv() error {
 		k.SaramaConfig.Net.SASL.User = k.KafkaUsername
 		k.SaramaConfig.Net.SASL.Password = k.KafkaPassword
 		k.SaramaConfig.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
-			return &XDGSCRAMClient{HashGeneratorFcn:   SHA512}
+			return &XDGSCRAMClient{HashGeneratorFcn: SHA512}
 		}
 	}
 

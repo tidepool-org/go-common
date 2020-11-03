@@ -51,7 +51,7 @@ func (r *ExponentialRetry) Retry(ctx context.Context) bool {
 		r.delay = r.initialDelay
 	} else {
 		r.delay = time.Duration(int64(r.multiplier * float32(r.delay)))
-		r.delay = r.delay + time.Duration(r.adder)*time.Second
+		r.delay = r.delay + r.adder
 		if r.delay > r.maxDelay {
 			r.delay = r.maxDelay
 		}

@@ -2,12 +2,14 @@ package events
 
 import (
 	"errors"
+
 	"github.com/Shopify/sarama"
 	"github.com/kelseyhightower/envconfig"
 )
 
 const DeadLetterSuffix = "-dead-letters"
 
+// CloudEventsConfig describes the configuration for a consumer of cloud events from a Kafka topic
 type CloudEventsConfig struct {
 	EventSource           string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"true"`
 	KafkaBrokers          []string `envconfig:"KAFKA_BROKERS" required:"true"`
@@ -19,6 +21,9 @@ type CloudEventsConfig struct {
 	KafkaVersion          string   `envconfig:"KAFKA_VERSION" required:"true"`
 	KafkaUsername         string   `envconfig:"KAFKA_USERNAME" required:"false"`
 	KafkaPassword         string   `envconfig:"KAFKA_PASSWORD" required:"false"`
+	KafkaDelay            int      `envconfig:"KAFKA_DELAY" default:"0"`
+	CascadeDelays         []int    `envconfig:"KAFKA_CASCADE_DELAYS" default:""`
+	CascadePattern        string   `envconfig:"KAFKA_CASCADE_PATTERN" default:"%s-delay-%d"`
 	SaramaConfig          *sarama.Config
 }
 

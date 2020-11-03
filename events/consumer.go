@@ -13,6 +13,58 @@ import (
 	"github.com/cloudevents/sdk-go/v2/binding"
 )
 
+//ExponentialRetry implements exponential backoff
+type ExponentialRetry struct {
+	attempt      int
+	maxAttempts  int
+	delay        time.Duration
+	maxDelay     time.Duration
+	initialDelay time.Duration
+	multiplier   float32
+	adder        time.Duration
+}
+
+//RetryAlgorithm implements a retry mechanism
+type RetryAlgorithm interface {
+	Retry() bool // returns true after possible delay if should attempt retry
+}
+
+//NewExponentialRetry creates a new exponential backoff mechanism
+func NewExponentialRetry(config *CloudEventsConfig) *ExponentialRetry {
+	return &ExponentialRetry{
+		attempt:      0,
+		delay:        0,
+		maxDelay:     config.RetryMaxDelay,
+		initialDelay: config.RetryInitialDelay,
+		multiplier:   config.RetryFactor,
+		adder:        config.RetryAddend,
+		maxAttempts:  config.RetryMaxAttempts,
+	}
+}
+
+// Retry implements retry algorithm
+func (r *ExponentialRetry) Retry(ctx context.Context) bool {
+	if r.attempt == r.maxAttempts {
+		return false
+	}
+	if r.attempt == 0 {
+		r.delay = r.initialDelay
+	} else {
+		r.delay = time.Duration(int64(r.multiplier * float32(r.delay)))
+		r.delay = r.delay + time.Duration(r.adder)*time.Second
+		if r.delay > r.maxDelay {
+			r.delay = r.maxDelay
+		}
+	}
+	r.attempt = r.attempt + 1
+	select {
+	case <-time.After(r.delay):
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
 type SaramaConsumer struct {
 	config             *CloudEventsConfig
 	consumerGroup      sarama.ConsumerGroup
@@ -20,6 +72,7 @@ type SaramaConsumer struct {
 	topic              string
 	handlers           []EventHandler
 	deadLetterProducer *KafkaCloudEventsProducer
+	retry              *ExponentialRetry
 }
 
 //CascadingEventConsumer an event consumer that cascaded failures
@@ -28,11 +81,12 @@ type CascadingEventConsumer struct {
 }
 
 // NewCascadingCloudEventsConsumer create a cascading events consumer
+// For every delay in config.CascadeDelays, a new consumer in addition to the one for the primary topic
 func NewCascadingCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, error) {
 	topic := config.KafkaTopic
 	delay := config.KafkaDelay
 	var consumers []EventConsumer
-	for nextDelay := range config.CascadeDelays {
+	for _, nextDelay := range config.CascadeDelays {
 		newconfig := *config
 		newconfig.KafkaDelay = delay
 		newconfig.KafkaTopic = topic
@@ -88,6 +142,7 @@ func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, err
 		ready:    make(chan bool),
 		topic:    config.GetPrefixedTopic(),
 		handlers: make([]EventHandler, 0),
+		retry:    NewExponentialRetry(config),
 	}, nil
 }
 
@@ -123,7 +178,11 @@ func (s *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 		}
 		// just ignore non-cloud event messages
 		if rs, rserr := binding.ToEvent(context.Background(), m); rserr == nil {
-			s.handleCloudEvent(*rs)
+			err := s.handleCloudEvent(session.Context(), *rs)
+			if err != nil {
+				log.Printf("failed to process event %s", err)
+				return err
+			}
 		}
 		session.MarkMessage(message, "")
 	}
@@ -131,7 +190,7 @@ func (s *SaramaConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim
 	return nil
 }
 
-func (s *SaramaConsumer) handleCloudEvent(ce cloudevents.Event) {
+func (s *SaramaConsumer) handleCloudEvent(ctx context.Context, ce cloudevents.Event) error {
 	var errors []error
 	for _, handler := range s.handlers {
 		if handler.CanHandle(ce) {
@@ -141,15 +200,23 @@ func (s *SaramaConsumer) handleCloudEvent(ce cloudevents.Event) {
 		}
 	}
 	if len(errors) != 0 {
-		log.Printf("Sending event %v to dead-letter topic due to handler error(s): %v", ce.ID(), errors)
-		s.sendToDeadLetterTopic(ce)
+		if s.retry.Retry(ctx) {
+			return s.handleCloudEvent(ctx, ce)
+		}
+		if s.config.IsDeadLettersEnabled() {
+			return s.sendToDeadLetterTopic(ce)
+		}
+		return fmt.Errorf("no dead letter topic, skipping event %v, %v", ce.ID(), errors)
 	}
+	return nil
 }
 
-func (s *SaramaConsumer) sendToDeadLetterTopic(ce cloudevents.Event) {
+func (s *SaramaConsumer) sendToDeadLetterTopic(ce cloudevents.Event) error {
 	if err := s.deadLetterProducer.SendCloudEvent(context.Background(), ce); err != nil {
 		log.Printf("Failed to send event %v to dead-letter topic: %v", ce, err)
+		return err
 	}
+	return nil
 }
 
 //RegisterHandler register a handler to process events

@@ -30,6 +30,8 @@ type RetryAlgorithm interface {
 }
 
 //NewExponentialRetry creates a new exponential backoff mechanism
+// retries will not be attempted if the delay exceeds maxDelay, so if initialDelay exceeds maxDelay, then no retries will be attempted
+// further retries will not be attempted if maxAttempts have already been tried, so if you set maxAttempts to 0, then no retries will be attempted
 func NewExponentialRetry(config *CloudEventsConfig) *ExponentialRetry {
 	return &ExponentialRetry{
 		attempt:      0,

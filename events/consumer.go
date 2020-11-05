@@ -44,10 +44,11 @@ func NewExponentialRetry(config *CloudEventsConfig) *ExponentialRetry {
 
 // Retry implements retry algorithm
 func (r *ExponentialRetry) Retry(ctx context.Context) bool {
-	if r.attempt == r.maxAttempts {
+	r.attempt = r.attempt + 1
+	if r.attempt > r.maxAttempts {
 		return false
 	}
-	if r.attempt == 0 {
+	if r.attempt == 1 {
 		r.delay = r.initialDelay
 	} else {
 		r.delay = time.Duration(int64(r.multiplier * float32(r.delay)))
@@ -56,7 +57,7 @@ func (r *ExponentialRetry) Retry(ctx context.Context) bool {
 	if r.delay > r.maxDelay {
 		return false
 	}
-	r.attempt = r.attempt + 1
+
 	select {
 	case <-time.After(r.delay):
 		return true

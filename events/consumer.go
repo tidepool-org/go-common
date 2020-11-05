@@ -52,9 +52,9 @@ func (r *ExponentialRetry) Retry(ctx context.Context) bool {
 	} else {
 		r.delay = time.Duration(int64(r.multiplier * float32(r.delay)))
 		r.delay = r.delay + r.adder
-		if r.delay > r.maxDelay {
-			return false
-		}
+	}
+	if r.delay > r.maxDelay {
+		return false
 	}
 	r.attempt = r.attempt + 1
 	select {

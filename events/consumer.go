@@ -86,11 +86,11 @@ func NewCascadingCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, 
 	topic := config.KafkaTopic
 	delay := config.KafkaDelay
 	var consumers []EventConsumer
-	for _, nextDelay := range config.CascadeDelays {
+	for i, nextDelay := range config.CascadeDelays {
 		newconfig := *config
 		newconfig.KafkaDelay = delay
 		newconfig.KafkaTopic = topic
-		newconfig.KafkaDeadLettersTopic = fmt.Sprintf(config.CascadePattern, config.KafkaTopic, nextDelay)
+		newconfig.KafkaDeadLettersTopic = fmt.Sprintf(config.CascadePattern, config.KafkaTopic, i, nextDelay)
 		consumer, err := NewSaramaCloudEventsConsumer(&newconfig)
 		if err != nil {
 			return nil, err

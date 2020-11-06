@@ -33,6 +33,7 @@ type CloudEventsConfig struct {
 	SaramaConfig          *sarama.Config
 }
 
+//NewConfig creates a new cloud events config
 func NewConfig() *CloudEventsConfig {
 	cfg := &CloudEventsConfig{}
 	cfg.SaramaConfig = sarama.NewConfig()
@@ -40,6 +41,7 @@ func NewConfig() *CloudEventsConfig {
 	return cfg
 }
 
+//LoadFromEnv loads the configuration from environment variables
 func (k *CloudEventsConfig) LoadFromEnv() error {
 	if err := envconfig.Process("", k); err != nil {
 		return err
@@ -67,10 +69,12 @@ func (k *CloudEventsConfig) LoadFromEnv() error {
 	return nil
 }
 
+//GetPrefixedTopic returns the fully resolved topic name
 func (k *CloudEventsConfig) GetPrefixedTopic() string {
 	return k.KafkaTopicPrefix + k.KafkaTopic
 }
 
+//GetDeadLettersTopic returns the fully resolved dead letter topic name or an empty string if there is no dead letter topic
 func (k *CloudEventsConfig) GetDeadLettersTopic() string {
 	if k.KafkaDeadLettersTopic == "" {
 		return k.KafkaDeadLettersTopic
@@ -78,6 +82,7 @@ func (k *CloudEventsConfig) GetDeadLettersTopic() string {
 	return k.KafkaTopicPrefix + k.KafkaDeadLettersTopic
 }
 
+//IsDeadLettersEnabled returns true iff there is a dead letter topic
 func (k *CloudEventsConfig) IsDeadLettersEnabled() bool {
 	return k.GetDeadLettersTopic() != ""
 }

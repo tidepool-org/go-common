@@ -34,15 +34,15 @@ type (
 	}
 
 	GatekeeperClient struct {
-		httpClient    *http.Client    // store a reference to the http client so we can reuse it
-		hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
-		tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
+		httpClient    *http.Client  // store a reference to the http client so we can reuse it
+		tokenProvider TokenProvider // An object that provides tokens for communicating with gatekeeper
+		host          *url.URL
 	}
 
 	gatekeeperClientBuilder struct {
-		httpClient    *http.Client    // store a reference to the http client so we can reuse it
-		hostGetter    disc.HostGetter // The getter that provides the host to talk to for the client
-		tokenProvider TokenProvider   // An object that provides tokens for communicating with gatekeeper
+		httpClient    *http.Client  // store a reference to the http client so we can reuse it
+		tokenProvider TokenProvider // An object that provides tokens for communicating with gatekeeper
+		host          *url.URL
 	}
 
 	Permission       map[string]interface{}
@@ -64,7 +64,12 @@ func (b *gatekeeperClientBuilder) WithHttpClient(httpClient *http.Client) *gatek
 }
 
 func (b *gatekeeperClientBuilder) WithHostGetter(hostGetter disc.HostGetter) *gatekeeperClientBuilder {
-	b.hostGetter = hostGetter
+	b.host = &hostGetter.HostGet()[0]
+	return b
+}
+
+func (b *gatekeeperClientBuilder) WithHost(host *url.URL) *gatekeeperClientBuilder {
+	b.host = host
 	return b
 }
 
@@ -74,8 +79,8 @@ func (b *gatekeeperClientBuilder) WithTokenProvider(tokenProvider TokenProvider)
 }
 
 func (b *gatekeeperClientBuilder) Build() *GatekeeperClient {
-	if b.hostGetter == nil {
-		panic("gatekeeperClient requires a hostGetter to be set")
+	if b.host == nil {
+		panic("gatekeeperClient requires a host to be set")
 	}
 	if b.tokenProvider == nil {
 		panic("gatekeeperClient requires a tokenProvider to be set")
@@ -87,13 +92,13 @@ func (b *gatekeeperClientBuilder) Build() *GatekeeperClient {
 
 	return &GatekeeperClient{
 		httpClient:    b.httpClient,
-		hostGetter:    b.hostGetter,
+		host:          b.host,
 		tokenProvider: b.tokenProvider,
 	}
 }
 
 func (client *GatekeeperClient) UserInGroup(userID, groupID string) (Permissions, error) {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return nil, errors.New("No known gatekeeper hosts")
 	}
@@ -189,11 +194,5 @@ func (client *GatekeeperClient) SetPermissions(userID, groupID string, permissio
 }
 
 func (client *GatekeeperClient) getHost() *url.URL {
-	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
-		cpy := new(url.URL)
-		*cpy = hostArr[0]
-		return cpy
-	} else {
-		return nil
-	}
+	return client.host
 }

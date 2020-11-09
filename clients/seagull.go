@@ -29,13 +29,13 @@ type (
 	}
 
 	SeagullClient struct {
-		httpClient *http.Client    // store a reference to the http client so we can reuse it
-		hostGetter disc.HostGetter // The getter that provides the host to talk to for the client
+		httpClient *http.Client // store a reference to the http client so we can reuse it
+		host       *url.URL
 	}
 
 	seagullClientBuilder struct {
 		httpClient *http.Client
-		hostGetter disc.HostGetter
+		host       *url.URL
 	}
 
 	PrivatePair struct {
@@ -54,7 +54,12 @@ func (b *seagullClientBuilder) WithHttpClient(httpClient *http.Client) *seagullC
 }
 
 func (b *seagullClientBuilder) WithHostGetter(hostGetter disc.HostGetter) *seagullClientBuilder {
-	b.hostGetter = hostGetter
+	b.host = &hostGetter.HostGet()[0]
+	return b
+}
+
+func (b *seagullClientBuilder) WithHost(host *url.URL) *seagullClientBuilder {
+	b.host = host
 	return b
 }
 
@@ -62,17 +67,17 @@ func (b *seagullClientBuilder) Build() *SeagullClient {
 	if b.httpClient == nil {
 		panic("seagullClient requires an httpClient to be set")
 	}
-	if b.hostGetter == nil {
+	if b.host == nil {
 		panic("seagullClient requires a hostGetter to be set")
 	}
 	return &SeagullClient{
 		httpClient: b.httpClient,
-		hostGetter: b.hostGetter,
+		host:       b.host,
 	}
 }
 
 func (client *SeagullClient) GetPrivatePair(userID, hashName, token string) *PrivatePair {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return nil
 	}
@@ -103,7 +108,7 @@ func (client *SeagullClient) GetPrivatePair(userID, hashName, token string) *Pri
 }
 
 func (client *SeagullClient) GetCollection(userID, collectionName, token string, v interface{}) error {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return nil
 	}
@@ -133,14 +138,4 @@ func (client *SeagullClient) GetCollection(userID, collectionName, token string,
 		return &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
 
-}
-
-func (client *SeagullClient) getHost() *url.URL {
-	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
-		cpy := new(url.URL)
-		*cpy = hostArr[0]
-		return cpy
-	} else {
-		return nil
-	}
 }

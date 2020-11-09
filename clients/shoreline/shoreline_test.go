@@ -34,7 +34,7 @@ func TestStart(t *testing.T) {
 	defer srvr.Close()
 
 	shorelineClient := NewShorelineClientBuilder().
-		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
+		WithHost(srvr.URL).
 		WithName("test").
 		WithSecret("howdy ho, neighbor joe").
 		WithTokenRefreshInterval(10 * time.Millisecond).

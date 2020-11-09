@@ -35,8 +35,8 @@ type Client interface {
 // ShorelineClient manages the local data for a client. A client is intended to be shared among multiple
 // goroutines so it's OK to treat it as a singleton (and probably a good idea).
 type ShorelineClient struct {
-	httpClient *http.Client           // store a reference to the http client so we can reuse it
-	hostGetter disc.HostGetter        // The getter that provides the host to talk to for the client
+	httpClient *http.Client // store a reference to the http client so we can reuse it
+	host       *url.URL
 	config     *ShorelineClientConfig // Configuration for the client
 
 	mut         sync.Mutex
@@ -77,7 +77,7 @@ type TokenData struct {
 }
 
 type ShorelineClientBuilder struct {
-	hostGetter disc.HostGetter
+	host       *url.URL
 	config     *ShorelineClientConfig
 	httpClient *http.Client
 }
@@ -111,8 +111,13 @@ func NewShorelineClientBuilder() *ShorelineClientBuilder {
 	}
 }
 
+func (b *ShorelineClientBuilder) WithHost(host *url.URL) *ShorelineClientBuilder {
+	b.host = host
+	return b
+}
+
 func (b *ShorelineClientBuilder) WithHostGetter(val disc.HostGetter) *ShorelineClientBuilder {
-	b.hostGetter = val
+	b.host = &val.HostGet()[0]
 	return b
 }
 
@@ -141,8 +146,8 @@ func (b *ShorelineClientBuilder) WithConfig(val *ShorelineClientConfig) *Shoreli
 }
 
 func (b *ShorelineClientBuilder) Build() *ShorelineClient {
-	if b.hostGetter == nil {
-		panic("shorelineClient requires a hostGetter to be set")
+	if b.host == nil {
+		panic("shorelineClient requires a host to be set")
 	}
 	if b.config.Name == "" {
 		panic("shorelineClient requires a name to be set")
@@ -156,7 +161,7 @@ func (b *ShorelineClientBuilder) Build() *ShorelineClient {
 	}
 
 	return &ShorelineClient{
-		hostGetter: b.hostGetter,
+		host:       b.host,
 		httpClient: b.httpClient,
 		config:     b.config,
 
@@ -204,7 +209,7 @@ func (client *ShorelineClient) Close() {
 // secret that was passed in on the creation of the client object. If
 // successful, it stores the returned token in ServerToken.
 func (client *ShorelineClient) serverLogin() error {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return errors.New("No known user-api hosts")
 	}
@@ -245,7 +250,7 @@ func extractUserData(r io.Reader) (*UserData, error) {
 // Signs up a new platfrom user
 // Returns a UserData object if successful
 func (client *ShorelineClient) Signup(username, password, email string) (*UserData, error) {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return nil, errors.New("No known user-api hosts.")
 	}
@@ -277,7 +282,7 @@ func (client *ShorelineClient) Signup(username, password, email string) (*UserDa
 // Login logs in a user with a username and password. Returns a UserData object if successful
 // and also stores the returned login token into ClientToken.
 func (client *ShorelineClient) Login(username, password string) (*UserData, string, error) {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return nil, "", errors.New("No known user-api hosts.")
 	}
@@ -312,7 +317,7 @@ func (client *ShorelineClient) Login(username, password string) (*UserData, stri
 // CheckToken tests a token with the user-api to make sure it's current;
 // if so, it returns the data encoded in the token.
 func (client *ShorelineClient) CheckToken(token string) *TokenData {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return nil
 	}
@@ -355,7 +360,7 @@ func (client *ShorelineClient) TokenProvide() string {
 // Get user details for the given user
 // In this case the userID could be the actual ID or an email address
 func (client *ShorelineClient) GetUser(userID, token string) (*UserData, error) {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return nil, errors.New("No known user-api hosts.")
 	}
@@ -389,7 +394,7 @@ func (client *ShorelineClient) GetUser(userID, token string) (*UserData, error) 
 // Get user details for the given user
 // In this case the userID could be the actual ID or an email address
 func (client *ShorelineClient) UpdateUser(userID string, userUpdate UserUpdate, token string) error {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		return errors.New("No known user-api hosts.")
 	}
@@ -422,15 +427,5 @@ func (client *ShorelineClient) UpdateUser(userID string, userUpdate UserUpdate, 
 			return &status.StatusError{
 				status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 		}
-	}
-}
-
-func (client *ShorelineClient) getHost() *url.URL {
-	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
-		cpy := new(url.URL)
-		*cpy = hostArr[0]
-		return cpy
-	} else {
-		return nil
 	}
 }

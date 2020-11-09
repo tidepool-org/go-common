@@ -11,6 +11,7 @@ import (
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/binding"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/Shopify/sarama/otelsarama"
 )
 
 //ExponentialRetry implements exponential backoff
@@ -134,19 +135,55 @@ func (c *CascadingEventConsumer) Start(ctx context.Context) error {
 	return nil
 }
 
+// eventConsumerWrapper provides support for Open Telemetry tracing of Kafka
+type eventConsumerWrapper struct {
+	consumer *SaramaConsumer
+	handler  sarama.ConsumerGroupHandler
+}
+
+func newEventConsumerWrapper(consumer *SaramaConsumer) *eventConsumerWrapper {
+	return &eventConsumerWrapper{
+		consumer,
+		otelsarama.WrapConsumerGroupHandler(consumer),
+	}
+}
+
+func (e *eventConsumerWrapper) Setup(s sarama.ConsumerGroupSession) error {
+	return e.handler.Setup(s)
+}
+
+func (e *eventConsumerWrapper) Cleanup(s sarama.ConsumerGroupSession) error {
+	return e.handler.Cleanup(s)
+}
+
+func (e *eventConsumerWrapper) ConsumeClaim(s sarama.ConsumerGroupSession, c sarama.ConsumerGroupClaim) error {
+	return e.handler.ConsumeClaim(s, c)
+}
+
+func (e *eventConsumerWrapper) RegisterHandler(handler EventHandler) {
+	e.consumer.RegisterHandler(handler)
+}
+
+func (e *eventConsumerWrapper) Start(ctx context.Context) error {
+	return e.consumer.Start(ctx)
+}
+
 //NewSaramaCloudEventsConsumer creates a new cloud events consumer
 func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, error) {
 	if err := validateConsumerConfig(config); err != nil {
 		return nil, err
 	}
 
-	return &SaramaConsumer{
+	consumer := &SaramaConsumer{
 		config:   config,
 		ready:    make(chan bool),
 		topic:    config.GetPrefixedTopic(),
 		handlers: make([]EventHandler, 0),
 		retry:    NewExponentialRetry(config),
-	}, nil
+	}
+
+	handler := newEventConsumerWrapper(consumer)
+	return handler, nil
 }
 
 //Setup marks a consumer to be ready

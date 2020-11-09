@@ -20,13 +20,13 @@ type Client interface {
 }
 
 type HighwaterClient struct {
-	hostGetter disc.HostGetter
+	host       *url.URL
 	config     *HighwaterClientConfig
 	httpClient *http.Client
 }
 
 type HighwaterClientBuilder struct {
-	hostGetter disc.HostGetter
+	host       *url.URL
 	config     *HighwaterClientConfig
 	httpClient *http.Client
 }
@@ -44,7 +44,12 @@ func NewHighwaterClientBuilder() *HighwaterClientBuilder {
 }
 
 func (b *HighwaterClientBuilder) WithHostGetter(val disc.HostGetter) *HighwaterClientBuilder {
-	b.hostGetter = val
+	b.host = &val.HostGet()[0]
+	return b
+}
+
+func (b *HighwaterClientBuilder) WithHost(host *url.URL) *HighwaterClientBuilder {
+	b.host = host
 	return b
 }
 
@@ -73,8 +78,8 @@ func (b *HighwaterClientBuilder) WithConfig(val *HighwaterClientConfig) *Highwat
 }
 
 func (b *HighwaterClientBuilder) Build() *HighwaterClient {
-	if b.hostGetter == nil {
-		panic("HighwaterClient requires a hostGetter to be set")
+	if b.host == nil {
+		panic("HighwaterClient requires a host to be set")
 	}
 	if b.config.Name == "" {
 		panic("HighwaterClient requires a name to be set")
@@ -92,19 +97,9 @@ func (b *HighwaterClientBuilder) Build() *HighwaterClient {
 	}
 
 	return &HighwaterClient{
-		hostGetter: b.hostGetter,
+		host:       b.host,
 		httpClient: b.httpClient,
 		config:     b.config,
-	}
-}
-
-func (client *HighwaterClient) getHost() *url.URL {
-	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
-		cpy := new(url.URL)
-		*cpy = hostArr[0]
-		return cpy
-	} else {
-		return nil
 	}
 }
 
@@ -129,7 +124,7 @@ func (client *HighwaterClient) adjustEventParams(params map[string]string) []byt
 
 func (client *HighwaterClient) PostServer(eventName, token string, params map[string]string) {
 
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		log.Println("No known highwater hosts.")
 		return
@@ -152,7 +147,7 @@ func (client *HighwaterClient) PostServer(eventName, token string, params map[st
 }
 
 func (client *HighwaterClient) PostThisUser(eventName, token string, params map[string]string) {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		log.Println("No known highwater hosts.")
 		return
@@ -175,7 +170,7 @@ func (client *HighwaterClient) PostThisUser(eventName, token string, params map[
 }
 
 func (client *HighwaterClient) PostWithUser(userId, eventName, token string, params map[string]string) {
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		log.Println("No known highwater hosts.")
 		return

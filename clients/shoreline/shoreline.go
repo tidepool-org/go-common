@@ -31,7 +31,7 @@ type Client interface {
 	Login(ctx context.Context, username, password string) (*UserData, string, error)
 	Signup(ctx context.Context, username, password, email string) (*UserData, error)
 	CheckToken(ctx context.Context, token string) *TokenData
-	TokenProvide() string
+	TokenProvide(ctx context.Context) string
 	GetUser(ctx context.Context, userID, token string) (*UserData, error)
 	UpdateUser(ctx context.Context, userID string, userUpdate UserUpdate, token string) error
 }
@@ -199,7 +199,7 @@ func (client *ShorelineClient) Start(ctx context.Context) error {
 	return nil
 }
 
-func (client *ShorelineClient) Close() {
+func (client *ShorelineClient) Close(ctx context.Context) {
 	twoWay := make(chan bool)
 	client.closed <- twoWay
 	<-twoWay

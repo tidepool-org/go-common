@@ -53,7 +53,7 @@ func TestStart(t *testing.T) {
 	}
 
 	<-time.After(100 * time.Millisecond)
-	shorelineClient.Close()
+	shorelineClient.Close(context.Background())
 }
 
 func TestLogin(t *testing.T) {
@@ -85,7 +85,7 @@ func TestLogin(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed start with error[%v]", err)
 	}
-	defer shorelineClient.Close()
+	defer shorelineClient.Close(context.Background())
 
 	ud, tok, err := shorelineClient.Login(context.Background(), "billy", "howdy")
 	if err != nil {
@@ -123,7 +123,7 @@ func TestSignup(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed start with error[%v]", err)
 	}
-	defer client.Close()
+	defer client.Close(context.Background())
 
 	ud, err := client.Signup(context.Background(), "new me", "howdy", "new.me@1234.abc")
 	if err != nil {

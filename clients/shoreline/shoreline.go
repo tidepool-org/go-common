@@ -26,14 +26,14 @@ import (
 
 // Client interface that we will implement and mock
 type Client interface {
-	Start() error
-	Close()
-	Login(username, password string) (*UserData, string, error)
-	Signup(username, password, email string) (*UserData, error)
-	CheckToken(token string) *TokenData
+	Start(ctx context.Context) error
+	Close(ctx context.Context)
+	Login(ctx context.Context, username, password string) (*UserData, string, error)
+	Signup(ctx context.Context, username, password, email string) (*UserData, error)
+	CheckToken(ctx context.Context, token string) *TokenData
 	TokenProvide() string
-	GetUser(userID, token string) (*UserData, error)
-	UpdateUser(userID string, userUpdate UserUpdate, token string) error
+	GetUser(ctx context.Context, userID, token string) (*UserData, error)
+	UpdateUser(ctx context.Context, userID string, userUpdate UserUpdate, token string) error
 }
 
 // ShorelineClient manages the local data for a client. A client is intended to be shared among multiple

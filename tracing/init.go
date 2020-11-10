@@ -48,18 +48,18 @@ type TraceConfig struct {
 	PodIP        string `envconfig:"POD_IP" required:"true"`
 }
 
-func samplingProvider() sdktrace.Sampler {
+func SamplingProvider() sdktrace.Sampler {
 	return sdktrace.AlwaysSample()
 }
 
-func traceConfigProvider() (traceConfig TraceConfig, err error) {
+func TraceConfigProvider() (traceConfig TraceConfig, err error) {
 	if err = envconfig.Process("", &traceConfig); err != nil {
 		return TraceConfig{}, err
 	}
 	return traceConfig, nil
 }
 
-func exporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
+func ExporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
 	exp, err := otlp.NewExporter(
 		otlp.WithInsecure(),
 		otlp.WithAddress(traceConfig.Collector),
@@ -68,11 +68,11 @@ func exporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
 	return exp, err
 }
 
-func spanProcessorProvider(exp *otlp.Exporter) *sdktrace.BatchSpanProcessor {
+func SpanProcessorProvider(exp *otlp.Exporter) *sdktrace.BatchSpanProcessor {
 	return sdktrace.NewBatchSpanProcessor(exp)
 }
 
-func tracerProvider(traceConfig TraceConfig, bsp *sdktrace.BatchSpanProcessor, sampler sdktrace.Sampler) *sdktrace.TracerProvider {
+func TracerProvider(traceConfig TraceConfig, bsp *sdktrace.BatchSpanProcessor, sampler sdktrace.Sampler) *sdktrace.TracerProvider {
 	res := resource.New(
 		semconv.ServiceNameKey.String(traceConfig.PodName),
 		semconv.K8SNamespaceNameKey.String(traceConfig.PodNamespace),
@@ -88,7 +88,7 @@ func tracerProvider(traceConfig TraceConfig, bsp *sdktrace.BatchSpanProcessor, s
 	return provider
 }
 
-func pushProvider(exp *otlp.Exporter) *push.Controller {
+func PushProvider(exp *otlp.Exporter) *push.Controller {
 	return push.New(
 		basic.New(simple.NewWithExactDistribution(), exp),
 		exp,
@@ -96,11 +96,11 @@ func pushProvider(exp *otlp.Exporter) *push.Controller {
 	)
 }
 
-func textMapPropagatorProvider() otel.TextMapPropagator {
+func TextMapPropagatorProvider() otel.TextMapPropagator {
 	return otel.NewCompositeTextMapPropagator(propagators.TraceContext{}, propagators.Baggage{})
 }
 
-func metricProvider(pusher *push.Controller) metric.MeterProvider {
+func MetricProvider(pusher *push.Controller) metric.MeterProvider {
 	return pusher.MeterProvider()
 }
 
@@ -136,27 +136,21 @@ func StartTracer(
 
 //TracingModule for using initializing tracing using fx
 var TracingModule = fx.Options(fx.Provide(
-	samplingProvider,
-	traceConfigProvider,
-	exporterProvider,
-	spanProcessorProvider,
-	tracerProvider,
-	pushProvider,
-	textMapPropagatorProvider,
-	metricProvider))
+	SamplingProvider,
+	TraceConfigProvider,
+	ExporterProvider,
+	SpanProcessorProvider,
+	TracerProvider,
+	PushProvider,
+	TextMapPropagatorProvider,
+	MetricProvider))
 
 /*
 func main() {
-	log.Printf("Waiting for connection...")
-
-	var traceConfig TraceConfig
-
-	if err := envconfig.Process("", &traceConfig); err != nil {
-		log.Fatalf("could not load trace config %v", err)
-	}
-
-	shutdown := initProvider(traceConfig, sdktrace.AlwaysSample())
-	defer shutdown()
+	fx.New(
+		tracing.TracingModule,
+		fx.Invoke(tracing.StartTracer),
+	).Run()
 
 	tracer := global.Tracer("test-tracer")
 	meter := global.Meter("test-meter")

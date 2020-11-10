@@ -134,7 +134,7 @@ func StartTracer(
 	})
 }
 
-//TracingModule for using initializing tracing using fx
+//TracingModule for initializing tracing using fx
 var TracingModule = fx.Options(fx.Provide(
 	SamplingProvider,
 	TraceConfigProvider,

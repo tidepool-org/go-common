@@ -104,7 +104,8 @@ func metricProvider(pusher *push.Controller) metric.MeterProvider {
 	return pusher.MeterProvider()
 }
 
-func startTracer(
+//StartTracer starts the distributed tracing service
+func StartTracer(
 	propagator otel.TextMapPropagator,
 	spanProcessor *sdktrace.BatchSpanProcessor,
 	exporter *otlp.Exporter,

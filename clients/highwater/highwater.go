@@ -18,9 +18,9 @@ import (
 
 // Client interface that we will implement and mock
 type Client interface {
-	PostServer(eventName, token string, params map[string]string)
-	PostThisUser(eventName, token string, params map[string]string)
-	PostWithUser(userId, eventName, token string, params map[string]string)
+	PostServer(ctx context.Context, eventName, token string, params map[string]string)
+	PostThisUser(ctx context.Context, eventName, token string, params map[string]string)
+	PostWithUser(ctx context.Context, userId, eventName, token string, params map[string]string)
 }
 
 type HighwaterClient struct {

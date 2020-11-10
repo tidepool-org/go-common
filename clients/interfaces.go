@@ -2,12 +2,14 @@
 // services in the tidepool platform
 package clients
 
+import "context"
+
 type TokenProvider interface {
-	TokenProvide() string
+	TokenProvide(ctx context.Context) string
 }
 
 type TokenProviderFunc func() string
 
-func (t TokenProviderFunc) TokenProvide() string {
+func (t TokenProviderFunc) TokenProvide(ctx context.Context) string {
 	return t()
 }

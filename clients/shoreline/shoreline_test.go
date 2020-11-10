@@ -48,7 +48,7 @@ func TestStart(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed start with error[%v]", err)
 	}
-	if tok := shorelineClient.TokenProvide(); tok != token {
+	if tok := shorelineClient.TokenProvide(context.Background()); tok != token {
 		t.Errorf("Unexpected token[%s]", tok)
 	}
 

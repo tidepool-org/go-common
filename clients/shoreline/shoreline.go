@@ -373,7 +373,7 @@ func (client *ShorelineClient) CheckToken(ctx context.Context, token string) *To
 	}
 }
 
-func (client *ShorelineClient) TokenProvide() string {
+func (client *ShorelineClient) TokenProvide(ctx context.Context) string {
 	client.mut.Lock()
 	defer client.mut.Unlock()
 

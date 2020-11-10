@@ -20,13 +20,15 @@ package tracing
 
 import (
 	"context"
-	"log"
 	"time"
 
+	"github.com/kelseyhightower/envconfig"
+	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/api/metric"
 	"go.opentelemetry.io/otel/exporters/otlp"
 
 	"go.opentelemetry.io/otel/propagators"
@@ -46,57 +48,101 @@ type TraceConfig struct {
 	PodIP        string `envconfig:"POD_IP" required:"true"`
 }
 
-// Initializes an OTLP exporter, and configures the corresponding trace and
-// metric providers.
-func initProvider(traceConfig TraceConfig, sampler sdktrace.Sampler) func() {
+func samplingProvider() sdktrace.Sampler {
+	return sdktrace.AlwaysSample()
+}
 
+func traceConfigProvider() (traceConfig TraceConfig, err error) {
+	if err = envconfig.Process("", &traceConfig); err != nil {
+		return TraceConfig{}, err
+	}
+	return traceConfig, nil
+}
+
+func exporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
 	exp, err := otlp.NewExporter(
 		otlp.WithInsecure(),
 		otlp.WithAddress(traceConfig.Collector),
-		otlp.WithGRPCDialOption(grpc.WithBlock()), // useful for testing
-	)
-	handleErr(err, "failed to create exporter")
+		otlp.WithGRPCDialOption(grpc.WithBlock()))
 
+	return exp, err
+}
+
+func spanProcessorProvider(exp *otlp.Exporter) *sdktrace.BatchSpanProcessor {
+	return sdktrace.NewBatchSpanProcessor(exp)
+}
+
+func tracerProvider(traceConfig TraceConfig, bsp *sdktrace.BatchSpanProcessor, sampler sdktrace.Sampler) *sdktrace.TracerProvider {
 	res := resource.New(
 		semconv.ServiceNameKey.String(traceConfig.PodName),
 		semconv.K8SNamespaceNameKey.String(traceConfig.PodNamespace),
 		semconv.ServiceInstanceIDKey.String(traceConfig.PodIP),
 	)
 
-	bsp := sdktrace.NewBatchSpanProcessor(exp)
-	tracerProvider := sdktrace.NewTracerProvider(
+	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithConfig(sdktrace.Config{DefaultSampler: sampler}),
 		sdktrace.WithResource(res),
 		sdktrace.WithSpanProcessor(bsp),
 	)
 
-	pusher := push.New(
-		basic.New(
-			simple.NewWithExactDistribution(),
-			exp,
-		),
+	return provider
+}
+
+func pushProvider(exp *otlp.Exporter) *push.Controller {
+	return push.New(
+		basic.New(simple.NewWithExactDistribution(), exp),
 		exp,
 		push.WithPeriod(2*time.Second),
 	)
-
-	// set global propagator to tracecontext and baggage
-	global.SetTextMapPropagator(otel.NewCompositeTextMapPropagator(propagators.TraceContext{}, propagators.Baggage{}))
-	global.SetTracerProvider(tracerProvider)
-	global.SetMeterProvider(pusher.MeterProvider())
-	pusher.Start()
-
-	return func() {
-		bsp.Shutdown() // shutdown the processor
-		handleErr(exp.Shutdown(context.Background()), "failed to stop exporter")
-		pusher.Stop() // pushes any last exports to the receiver
-	}
 }
 
-func handleErr(err error, message string) {
-	if err != nil {
-		log.Fatalf("%s: %v", message, err)
-	}
+func textMapPropagatorProvider() otel.TextMapPropagator {
+	return otel.NewCompositeTextMapPropagator(propagators.TraceContext{}, propagators.Baggage{})
 }
+
+func metricProvider(pusher *push.Controller) metric.MeterProvider {
+	return pusher.MeterProvider()
+}
+
+func startTracer(
+	propagator otel.TextMapPropagator,
+	spanProcessor *sdktrace.BatchSpanProcessor,
+	exporter *otlp.Exporter,
+	tracerProvider *sdktrace.TracerProvider,
+	pusher *push.Controller,
+	metricPrivder metric.MeterProvider,
+	lifecycle fx.Lifecycle) {
+
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			global.SetTextMapPropagator(propagator)
+			global.SetTracerProvider(tracerProvider)
+			global.SetMeterProvider(metricPrivder)
+			pusher.Start()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			spanProcessor.Shutdown()
+			err := exporter.Shutdown(ctx)
+			if err != nil {
+				return err
+			}
+			pusher.Stop() // pushes any last exports to the receiver
+			return nil
+		},
+	})
+}
+
+//TracingModule for using initializing tracing using fx
+var TracingModule = fx.Options(fx.Provide(
+	samplingProvider,
+	traceConfigProvider,
+	exporterProvider,
+	spanProcessorProvider,
+	tracerProvider,
+	pushProvider,
+	textMapPropagatorProvider,
+	metricProvider))
 
 /*
 func main() {

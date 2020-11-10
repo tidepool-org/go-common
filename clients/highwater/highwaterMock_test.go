@@ -1,6 +1,7 @@
 package highwater
 
 import (
+	"context"
 	"testing"
 )
 
@@ -20,11 +21,11 @@ func TestMock(t *testing.T) {
 
 	client := NewMock()
 
-	client.PostServer(EVENT_NAME, TOKEN, p)
+	client.PostServer(context.Background(), EVENT_NAME, TOKEN, p)
 
-	client.PostThisUser(EVENT_NAME, TOKEN, p)
+	client.PostThisUser(context.Background(), EVENT_NAME, TOKEN, p)
 
-	client.PostWithUser(USERID, EVENT_NAME, TOKEN, p)
+	client.PostWithUser(context.Background(), USERID, EVENT_NAME, TOKEN, p)
 }
 
 //log.Panic is called when not all required args are passed.
@@ -45,11 +46,11 @@ func TestMock_Fails(t *testing.T) {
 
 	client := NewMock()
 
-	client.PostServer("", TOKEN, p)
+	client.PostServer(context.Background(), "", TOKEN, p)
 
-	client.PostThisUser(EVENT_NAME, "", p)
+	client.PostThisUser(context.Background(), EVENT_NAME, "", p)
 
-	client.PostWithUser("", EVENT_NAME, TOKEN, p)
+	client.PostWithUser(context.Background(), "", EVENT_NAME, TOKEN, p)
 
-	client.PostWithUser("", EVENT_NAME, TOKEN, nil)
+	client.PostWithUser(context.Background(), "", EVENT_NAME, TOKEN, nil)
 }

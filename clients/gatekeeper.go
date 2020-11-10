@@ -110,7 +110,7 @@ func (client *GatekeeperClient) UserInGroup(ctx context.Context, userID, groupID
 	defer span.End()
 
 	req, _ := http.NewRequestWithContext(spanCtx, "GET", host.String(), nil)
-	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
+	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide(ctx))
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
@@ -142,7 +142,7 @@ func (client *GatekeeperClient) UsersInGroup(ctx context.Context, groupID string
 	defer span.End()
 
 	req, _ := http.NewRequestWithContext(spanCtx, "GET", host.String(), nil)
-	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
+	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide(ctx))
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
@@ -179,7 +179,7 @@ func (client *GatekeeperClient) SetPermissions(ctx context.Context, userID, grou
 
 		req, _ := http.NewRequestWithContext(spanCtx, "POST", host.String(), bytes.NewBuffer(jsonPerms))
 		req.Header.Set("content-type", "application/json")
-		req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
+		req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide(ctx))
 
 		res, err := client.httpClient.Do(req)
 		if err != nil {

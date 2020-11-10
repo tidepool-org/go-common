@@ -48,10 +48,12 @@ type TraceConfig struct {
 	PodIP        string `envconfig:"POD_IP" required:"true"`
 }
 
+//SamplingProvider provides the sampling algorithm for the tracer
 func SamplingProvider() sdktrace.Sampler {
 	return sdktrace.AlwaysSample()
 }
 
+//TraceConfigProvider provides the location of the tracing collector host and info about the current process
 func TraceConfigProvider() (traceConfig TraceConfig, err error) {
 	if err = envconfig.Process("", &traceConfig); err != nil {
 		return TraceConfig{}, err
@@ -59,6 +61,7 @@ func TraceConfigProvider() (traceConfig TraceConfig, err error) {
 	return traceConfig, nil
 }
 
+//ExporterProvider provides an exporter
 func ExporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
 	exp, err := otlp.NewExporter(
 		otlp.WithInsecure(),
@@ -68,10 +71,12 @@ func ExporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
 	return exp, err
 }
 
+//SpanProcessorProvider provides a span processor
 func SpanProcessorProvider(exp *otlp.Exporter) *sdktrace.BatchSpanProcessor {
 	return sdktrace.NewBatchSpanProcessor(exp)
 }
 
+//TracerProvider provides a tracer
 func TracerProvider(traceConfig TraceConfig, bsp *sdktrace.BatchSpanProcessor, sampler sdktrace.Sampler) *sdktrace.TracerProvider {
 	res := resource.New(
 		semconv.ServiceNameKey.String(traceConfig.PodName),
@@ -88,6 +93,7 @@ func TracerProvider(traceConfig TraceConfig, bsp *sdktrace.BatchSpanProcessor, s
 	return provider
 }
 
+//PushProvider provides an OpenTelemetry push controller
 func PushProvider(exp *otlp.Exporter) *push.Controller {
 	return push.New(
 		basic.New(simple.NewWithExactDistribution(), exp),
@@ -96,10 +102,12 @@ func PushProvider(exp *otlp.Exporter) *push.Controller {
 	)
 }
 
+//TextMapPropagatorProvider provides a text map propagator
 func TextMapPropagatorProvider() otel.TextMapPropagator {
 	return otel.NewCompositeTextMapPropagator(propagators.TraceContext{}, propagators.Baggage{})
 }
 
+//MetricProvider provides a meter provider
 func MetricProvider(pusher *push.Controller) metric.MeterProvider {
 	return pusher.MeterProvider()
 }

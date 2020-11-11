@@ -29,15 +29,20 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/metric"
+	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/exporters/otlp"
+	"go.opentelemetry.io/otel/exporters/stdout"
 
 	"go.opentelemetry.io/otel/propagators"
+	export "go.opentelemetry.io/otel/sdk/export/trace"
 	"go.opentelemetry.io/otel/sdk/metric/controller/push"
 	"go.opentelemetry.io/otel/sdk/metric/processor/basic"
 	"go.opentelemetry.io/otel/sdk/metric/selector/simple"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/semconv"
+
+	sdkmetric "go.opentelemetry.io/otel/sdk/export/metric"
 )
 
 //TraceConfig defines constants for configuring the trace system
@@ -61,7 +66,7 @@ func TraceConfigProvider() (traceConfig TraceConfig, err error) {
 	return traceConfig, nil
 }
 
-//ExporterProvider provides an exporter
+//ExporterProvider provides an oltp exporter
 func ExporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
 	exp, err := otlp.NewExporter(
 		otlp.WithInsecure(),
@@ -71,13 +76,39 @@ func ExporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
 	return exp, err
 }
 
+// TraceExporter converts an otlp Exporter into a metric exporter
+func TraceExporter(exp *otlp.Exporter) sdkmetric.Exporter {
+	return exp
+}
+
+// MetricExporter converts an otlp Exporter into a span exporter
+func MetricExporter(exp *otlp.Exporter) export.SpanExporter {
+	return exp
+}
+
+// StdoutMetricExporter converts an otlp Exporter into a span exporter
+func StdoutMetricExporter(exp *stdout.Exporter) export.SpanExporter {
+	return exp
+}
+
+// StdoutTraceExporter converts an otlp Exporter into a metric exporter
+func StdoutTraceExporter(exp *stdout.Exporter) sdkmetric.Exporter {
+	return exp
+}
+
+//StdoutExporterProvider provides an exporter that writes to the stdout
+func StdoutExporterProvider(traceConfig TraceConfig) (*stdout.Exporter, error) {
+	exporter, err := stdout.NewExporter(stdout.WithPrettyPrint())
+	return exporter, err
+}
+
 //SpanProcessorProvider provides a span processor
-func SpanProcessorProvider(exp *otlp.Exporter) *sdktrace.BatchSpanProcessor {
+func SpanProcessorProvider(exp export.SpanExporter) sdktrace.SpanProcessor {
 	return sdktrace.NewBatchSpanProcessor(exp)
 }
 
 //TracerProvider provides a tracer
-func TracerProvider(traceConfig TraceConfig, bsp *sdktrace.BatchSpanProcessor, sampler sdktrace.Sampler) *sdktrace.TracerProvider {
+func TracerProvider(traceConfig TraceConfig, bsp sdktrace.SpanProcessor, sampler sdktrace.Sampler) trace.TracerProvider {
 	res := resource.New(
 		semconv.ServiceNameKey.String(traceConfig.PodName),
 		semconv.K8SNamespaceNameKey.String(traceConfig.PodNamespace),
@@ -94,7 +125,7 @@ func TracerProvider(traceConfig TraceConfig, bsp *sdktrace.BatchSpanProcessor, s
 }
 
 //PushProvider provides an OpenTelemetry push controller
-func PushProvider(exp *otlp.Exporter) *push.Controller {
+func PushProvider(exp sdkmetric.Exporter) *push.Controller {
 	return push.New(
 		basic.New(simple.NewWithExactDistribution(), exp),
 		exp,
@@ -115,9 +146,9 @@ func MetricProvider(pusher *push.Controller) metric.MeterProvider {
 //StartTracer starts the distributed tracing service
 func StartTracer(
 	propagator otel.TextMapPropagator,
-	spanProcessor *sdktrace.BatchSpanProcessor,
-	exporter *otlp.Exporter,
-	tracerProvider *sdktrace.TracerProvider,
+	spanProcessor sdktrace.SpanProcessor,
+	exporter export.SpanExporter,
+	tracerProvider trace.TracerProvider,
 	pusher *push.Controller,
 	metricPrivder metric.MeterProvider,
 	lifecycle fx.Lifecycle) {
@@ -142,15 +173,30 @@ func StartTracer(
 	})
 }
 
-//TracingModule for initializing tracing using fx
+//TracingModule provides a tracer that writes to a tracing backend
 var TracingModule = fx.Options(fx.Provide(
 	SamplingProvider,
 	TraceConfigProvider,
-	ExporterProvider,
 	SpanProcessorProvider,
 	TracerProvider,
 	PushProvider,
 	TextMapPropagatorProvider,
+	ExporterProvider,
+	TraceExporter,
+	MetricExporter,
+	MetricProvider))
+
+//StdoutTracingModule provide a tracer that writes to stdout
+var StdoutTracingModule = fx.Options(fx.Provide(
+	SamplingProvider,
+	TraceConfigProvider,
+	SpanProcessorProvider,
+	TracerProvider,
+	PushProvider,
+	TextMapPropagatorProvider,
+	StdoutExporterProvider,
+	StdoutTraceExporter,
+	StdoutMetricExporter,
 	MetricProvider))
 
 /*

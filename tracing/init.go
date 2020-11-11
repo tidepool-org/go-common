@@ -147,9 +147,9 @@ func MetricProvider(pusher *push.Controller) metric.MeterProvider {
 type Params struct {
 	fx.In
 	propagator     otel.TextMapPropagator
-	spanProcessor  *sdktrace.BatchSpanProcessor
-	exporter       *otlp.Exporter
-	tracerProvider *sdktrace.TracerProvider
+	spanProcessor  sdktrace.SpanProcessor
+	exporter       export.SpanExporter
+	tracerProvider trace.TracerProvider
 	pusher         *push.Controller
 	metricPrivder  metric.MeterProvider
 	lifecycle      fx.Lifecycle

@@ -47,7 +47,7 @@ import (
 
 //TraceConfig defines constants for configuring the trace system
 type TraceConfig struct {
-	Collector    string `envconfig:"OTEL_COLLECTOR_HOST" required:"true"`
+	Collector    string `envconfig:"OTEL_COLLECTOR_HOST" default:"otel-collector.observability:55680"`
 	PodName      string `envconfig:"POD_NAME" required:"true"`
 	PodNamespace string `envconfig:"POD_NAMESPACE" required:"true"`
 	PodIP        string `envconfig:"POD_IP" required:"true"`
@@ -81,8 +81,8 @@ func TraceExporter(exp *otlp.Exporter) sdkmetric.Exporter {
 	return exp
 }
 
-// MetricExporter converts an otlp Exporter into a span exporter
-func MetricExporter(exp *otlp.Exporter) export.SpanExporter {
+// SpanExporter converts an otlp Exporter into a span exporter
+func SpanExporter(exp *otlp.Exporter) export.SpanExporter {
 	return exp
 }
 
@@ -96,8 +96,8 @@ func StdoutTraceExporter(exp *stdout.Exporter) sdkmetric.Exporter {
 	return exp
 }
 
-//StdoutExporterProvider provides an exporter that writes to the stdout
-func StdoutExporterProvider(traceConfig TraceConfig) (*stdout.Exporter, error) {
+//StdoutSpanExporter provides an exporter that writes to the stdout
+func StdoutSpanExporter(traceConfig TraceConfig) (*stdout.Exporter, error) {
 	exporter, err := stdout.NewExporter(stdout.WithPrettyPrint())
 	return exporter, err
 }
@@ -186,7 +186,7 @@ var TracingModule = fx.Options(fx.Provide(
 	TextMapPropagatorProvider,
 	ExporterProvider,
 	TraceExporter,
-	MetricExporter,
+	SpanExporter,
 	MetricProvider))
 
 //StdoutTracingModule provide a tracer that writes to stdout
@@ -197,9 +197,9 @@ var StdoutTracingModule = fx.Options(fx.Provide(
 	TracerProvider,
 	PushProvider,
 	TextMapPropagatorProvider,
-	StdoutExporterProvider,
+	StdoutSpanExporter,
 	StdoutTraceExporter,
-	StdoutMetricExporter,
+	StdoutSpanExporter,
 	MetricProvider))
 
 /*

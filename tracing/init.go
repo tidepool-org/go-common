@@ -146,31 +146,31 @@ func MetricProvider(pusher *push.Controller) metric.MeterProvider {
 // Params needed to start Tracer
 type Params struct {
 	fx.In
-	propagator     otel.TextMapPropagator
-	spanProcessor  sdktrace.SpanProcessor
-	exporter       export.SpanExporter
-	tracerProvider trace.TracerProvider
-	pusher         *push.Controller
-	metricPrivder  metric.MeterProvider
+	Propagator     otel.TextMapPropagator
+	SpanProcessor  sdktrace.SpanProcessor
+	Exporter       export.SpanExporter
+	TracerProvider trace.TracerProvider
+	Pusher         *push.Controller
+	MetricPrivder  metric.MeterProvider
 }
 
 //StartTracer starts the distributed tracing service
 func StartTracer(p Params, lifecycle fx.Lifecycle) {
 	lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			global.SetTextMapPropagator(p.propagator)
-			global.SetTracerProvider(p.tracerProvider)
-			global.SetMeterProvider(p.metricPrivder)
-			p.pusher.Start()
+			global.SetTextMapPropagator(p.Propagator)
+			global.SetTracerProvider(p.TracerProvider)
+			global.SetMeterProvider(p.MetricPrivder)
+			p.Pusher.Start()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			p.spanProcessor.Shutdown()
-			err := p.exporter.Shutdown(ctx)
+			p.SpanProcessor.Shutdown()
+			err := p.Exporter.Shutdown(ctx)
 			if err != nil {
 				return err
 			}
-			p.pusher.Stop() // pushes any last exports to the receiver
+			p.Pusher.Stop() // pushes any last exports to the receiver
 			return nil
 		},
 	})

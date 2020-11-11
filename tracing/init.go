@@ -143,31 +143,35 @@ func MetricProvider(pusher *push.Controller) metric.MeterProvider {
 	return pusher.MeterProvider()
 }
 
-//StartTracer starts the distributed tracing service
-func StartTracer(
-	propagator otel.TextMapPropagator,
-	spanProcessor sdktrace.SpanProcessor,
-	exporter export.SpanExporter,
-	tracerProvider trace.TracerProvider,
-	pusher *push.Controller,
-	metricPrivder metric.MeterProvider,
-	lifecycle fx.Lifecycle) {
+// Params needed to start Tracer
+type Params struct {
+	fx.In
+	propagator     otel.TextMapPropagator
+	spanProcessor  *sdktrace.BatchSpanProcessor
+	exporter       *otlp.Exporter
+	tracerProvider *sdktrace.TracerProvider
+	pusher         *push.Controller
+	metricPrivder  metric.MeterProvider
+	lifecycle      fx.Lifecycle
+}
 
-	lifecycle.Append(fx.Hook{
+//StartTracer starts the distributed tracing service
+func StartTracer(p Params) {
+	p.lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			global.SetTextMapPropagator(propagator)
-			global.SetTracerProvider(tracerProvider)
-			global.SetMeterProvider(metricPrivder)
-			pusher.Start()
+			global.SetTextMapPropagator(p.propagator)
+			global.SetTracerProvider(p.tracerProvider)
+			global.SetMeterProvider(p.metricPrivder)
+			p.pusher.Start()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			spanProcessor.Shutdown()
-			err := exporter.Shutdown(ctx)
+			p.spanProcessor.Shutdown()
+			err := p.exporter.Shutdown(ctx)
 			if err != nil {
 				return err
 			}
-			pusher.Stop() // pushes any last exports to the receiver
+			p.pusher.Stop() // pushes any last exports to the receiver
 			return nil
 		},
 	})

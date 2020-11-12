@@ -76,8 +76,8 @@ func ExporterProvider(traceConfig TraceConfig) (*otlp.Exporter, error) {
 	return exp, err
 }
 
-// TraceExporter converts an otlp Exporter into a metric exporter
-func TraceExporter(exp *otlp.Exporter) sdkmetric.Exporter {
+// MetricExporter converts an otlp Exporter into a metric exporter
+func MetricExporter(exp *otlp.Exporter) sdkmetric.Exporter {
 	return exp
 }
 
@@ -86,18 +86,18 @@ func SpanExporter(exp *otlp.Exporter) export.SpanExporter {
 	return exp
 }
 
-// StdoutMetricExporter converts an otlp Exporter into a span exporter
-func StdoutMetricExporter(exp *stdout.Exporter) export.SpanExporter {
+// StdoutSpanExporter converts an otlp Exporter into a span exporter
+func StdoutSpanExporter(exp *stdout.Exporter) export.SpanExporter {
 	return exp
 }
 
-// StdoutTraceExporter converts an otlp Exporter into a metric exporter
-func StdoutTraceExporter(exp *stdout.Exporter) sdkmetric.Exporter {
+// StdoutMetricExporter converts an otlp Exporter into a metric exporter
+func StdoutMetricExporter(exp *stdout.Exporter) sdkmetric.Exporter {
 	return exp
 }
 
-//StdoutSpanExporter provides an exporter that writes to the stdout
-func StdoutSpanExporter(traceConfig TraceConfig) (*stdout.Exporter, error) {
+//StdoutExporter provides an exporter that writes to the stdout
+func StdoutExporter(traceConfig TraceConfig) (*stdout.Exporter, error) {
 	exporter, err := stdout.NewExporter(stdout.WithPrettyPrint())
 	return exporter, err
 }
@@ -185,8 +185,9 @@ var TracingModule = fx.Options(fx.Provide(
 	PushProvider,
 	TextMapPropagatorProvider,
 	ExporterProvider,
-	TraceExporter,
 	SpanExporter,
+	StdoutMetricExporter,
+	StdoutExporter,
 	MetricProvider))
 
 //StdoutTracingModule provide a tracer that writes to stdout
@@ -197,8 +198,8 @@ var StdoutTracingModule = fx.Options(fx.Provide(
 	TracerProvider,
 	PushProvider,
 	TextMapPropagatorProvider,
-	StdoutSpanExporter,
-	StdoutTraceExporter,
+	StdoutExporter,
+	StdoutMetricExporter,
 	StdoutSpanExporter,
 	MetricProvider))
 

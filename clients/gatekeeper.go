@@ -9,15 +9,18 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/tidepool-org/go-common/clients/configuration"
 	"github.com/tidepool-org/go-common/clients/disc"
+	"github.com/tidepool-org/go-common/clients/shoreline"
 	"github.com/tidepool-org/go-common/clients/status"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/semconv"
+	"go.uber.org/fx"
 )
 
 type (
-	//Interface so that we can mock gatekeeperClient for tests
+	//Gatekeeper  Interface so that we can mock gatekeeperClient for tests
 	Gatekeeper interface {
 		//userID  -- the Tidepool-assigned userID
 		//groupID  -- the Tidepool-assigned groupID
@@ -53,9 +56,20 @@ type (
 	UsersPermissions map[string]Permissions
 )
 
-var (
-	Allowed Permission = Permission{}
-)
+var Allowed Permission = Permission{}
+
+//GatekeeperModule provides a Gatekeeper client
+var GatekeeperModule fx.Option = fx.Options(fx.Provide(Provider))
+
+//Provider creats a Gatekeeper client
+func Provider(config configuration.OutboundConfig, shoreline shoreline.Client, httpClient *http.Client) Gatekeeper {
+	host, _ := url.Parse(config.PermissionClientAddress)
+	return NewGatekeeperClientBuilder().
+		WithHost(host).
+		WithHttpClient(httpClient).
+		WithTokenProvider(shoreline).
+		Build()
+}
 
 func NewGatekeeperClientBuilder() *gatekeeperClientBuilder {
 	return &gatekeeperClientBuilder{}

@@ -8,8 +8,10 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/tidepool-org/go-common/clients/configuration"
 	"github.com/tidepool-org/go-common/clients/disc"
 	"github.com/tidepool-org/go-common/clients/status"
+	"go.uber.org/fx"
 
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/trace"
@@ -48,6 +50,17 @@ type (
 		Value string
 	}
 )
+
+//SeagullModule provides a Seagull client
+var SeagullModule fx.Option = fx.Options(fx.Provide(SeagullProvider))
+
+func SeagullProvider(config configuration.OutboundConfig, httpClient *http.Client) Seagull {
+	host, _ := url.Parse(config.SeagullClientAddress)
+	return NewSeagullClientBuilder().
+		WithHost(host).
+		WithHttpClient(httpClient).
+		Build()
+}
 
 func NewSeagullClientBuilder() *seagullClientBuilder {
 	return &seagullClientBuilder{}

@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tidepool-org/go-common/clients/configuration"
 	"github.com/tidepool-org/go-common/clients/disc"
 	"github.com/tidepool-org/go-common/clients/status"
 	"github.com/tidepool-org/go-common/errors"
@@ -22,6 +23,7 @@ import (
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/semconv"
+	"go.uber.org/fx"
 )
 
 // Client interface that we will implement and mock
@@ -78,6 +80,21 @@ type UserUpdate struct {
 type TokenData struct {
 	UserID   string // the UserID stored in the token
 	IsServer bool   // true or false depending on whether the token was a servertoken
+}
+
+//ShorelineModule creates a Shoreline provider
+var ShorelineModule fx.Option = fx.Options(fx.Provide(Provider))
+
+//Provider creates a Shoreline client
+func Provider(config configuration.OutboundConfig, httpClient *http.Client) Client {
+	host, _ := url.Parse(config.AuthClientAddress)
+	return NewShorelineClientBuilder().
+		WithHost(host).
+		WithHttpClient(httpClient).
+		WithName("shoreline").
+		WithSecret(config.ServerSecret).
+		WithTokenRefreshInterval(time.Hour).
+		Build()
 }
 
 type ShorelineClientBuilder struct {

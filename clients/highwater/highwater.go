@@ -10,10 +10,12 @@ import (
 	"path"
 	"strings"
 
+	"github.com/tidepool-org/go-common/clients/configuration"
 	"github.com/tidepool-org/go-common/clients/disc"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/semconv"
+	"go.uber.org/fx"
 )
 
 // Client interface that we will implement and mock
@@ -39,6 +41,21 @@ type HighwaterClientConfig struct {
 	Name           string `json:"name"` // The name of this server for use in obtaining a server token
 	MetricsSource  string `json:"metricsSource"`
 	MetricsVersion string `json:"metricsVersion"`
+}
+
+//HighwaterModule provides a Highwater client
+var HighwaterModule fx.Option = fx.Options(fx.Provide(Provider))
+
+//Provider creates a Highwater client
+func Provider(config configuration.OutboundConfig, httpClient *http.Client) Client {
+	host, _ := url.Parse(config.MetricsClientAddress)
+	return NewHighwaterClientBuilder().
+		WithHost(host).
+		WithHttpClient(httpClient).
+		WithName("highwater").
+		WithSource("hydrophone").
+		WithVersion("v0.0.1").
+		Build()
 }
 
 func NewHighwaterClientBuilder() *HighwaterClientBuilder {

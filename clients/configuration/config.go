@@ -6,7 +6,15 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.uber.org/fx"
 )
+
+// Module that provides basic configuration for a web service that uses an http client
+var Module fx.Option = fx.Options(fx.Provide(
+	OutboundConfigProvider,
+	InboundConfigProvider,
+	HttpClientProvider,
+))
 
 // OutboundConfig contains how to communicate with the dependent services
 type OutboundConfig struct {
@@ -46,7 +54,7 @@ func InboundConfigProvider() (InboundConfig, error) {
 	return config, nil
 }
 
-func httpClientProvider() *http.Client {
+func HttpClientProvider() *http.Client {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}

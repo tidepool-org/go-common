@@ -151,7 +151,7 @@ type Params struct {
 	Exporter       export.SpanExporter
 	TracerProvider trace.TracerProvider
 	Pusher         *push.Controller
-	MetricPrivder  metric.MeterProvider
+	//MetricPrivder  metric.MeterProvider
 }
 
 //StartTracer starts the distributed tracing service
@@ -160,7 +160,7 @@ func StartTracer(p Params, lifecycle fx.Lifecycle) {
 		OnStart: func(ctx context.Context) error {
 			global.SetTextMapPropagator(p.Propagator)
 			global.SetTracerProvider(p.TracerProvider)
-			global.SetMeterProvider(p.MetricPrivder)
+			//global.SetMeterProvider(p.MetricPrivder)
 			p.Pusher.Start()
 			return nil
 		},

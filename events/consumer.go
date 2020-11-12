@@ -12,6 +12,7 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/binding"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/Shopify/sarama/otelsarama"
+	"go.uber.org/fx"
 )
 
 //ExponentialRetry implements exponential backoff
@@ -203,6 +204,30 @@ func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, err
 
 	handler := newEventConsumerWrapper(consumer)
 	return handler, nil
+}
+
+//StartEventConsumer starts an event consumer
+func StartEventConsumer(consumer EventConsumer, lifecycle fx.Lifecycle) {
+	consumerCtx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{}, 1)
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				// blocks until context is terminated
+				err := consumer.Start(consumerCtx)
+				if err != nil {
+					log.Printf("Unable to start cloud events consumer: %v", err)
+				}
+				done <- struct{}{}
+			}()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			cancel()
+			<-done
+			return nil
+		},
+	})
 }
 
 //Setup marks a consumer to be ready

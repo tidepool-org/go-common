@@ -13,7 +13,7 @@ import (
 var Module fx.Option = fx.Options(fx.Provide(
 	OutboundConfigProvider,
 	InboundConfigProvider,
-	HttpClientProvider,
+	HTTPClientProvider,
 ))
 
 // OutboundConfig contains how to communicate with the dependent services
@@ -54,7 +54,8 @@ func InboundConfigProvider() (InboundConfig, error) {
 	return config, nil
 }
 
-func HttpClientProvider() *http.Client {
+//HTTPClientProvider proviers an http client that traces using OpenTelemetry
+func HTTPClientProvider() *http.Client {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}

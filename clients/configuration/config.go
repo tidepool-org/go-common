@@ -47,7 +47,7 @@ type InboundConfig struct {
 // InboundConfigProvider provide inbound addresses
 func InboundConfigProvider() (InboundConfig, error) {
 	var config InboundConfig
-	err := envconfig.Process("tidepool", &config)
+	err := envconfig.Process("service", &config)
 	if err != nil {
 		return InboundConfig{}, err
 	}

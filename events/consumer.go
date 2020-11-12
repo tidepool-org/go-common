@@ -168,6 +168,25 @@ func (e *eventConsumerWrapper) Start(ctx context.Context) error {
 	return e.consumer.Start(ctx)
 }
 
+//CloudEventsConfigProvider provides a cloud events config
+func CloudEventsConfigProvider() (*CloudEventsConfig, error) {
+	cfg := NewConfig()
+	if err := cfg.LoadFromEnv(); err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+//CloudEventsConsumerProvider provides a cloud events consumer
+func CloudEventsConsumerProvider(config *CloudEventsConfig, handler EventHandler) (EventConsumer, error) {
+	consumer, err := NewSaramaCloudEventsConsumer(config)
+	if err != nil {
+		return nil, err
+	}
+	consumer.RegisterHandler(handler)
+	return consumer, nil
+}
+
 //NewSaramaCloudEventsConsumer creates a new cloud events consumer
 func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, error) {
 	if err := validateConsumerConfig(config); err != nil {

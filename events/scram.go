@@ -3,10 +3,9 @@ package events
 import (
 	"crypto/sha512"
 	"github.com/xdg/scram"
-	"hash"
 )
 
-var SHA512 scram.HashGeneratorFcn = func() hash.Hash { return sha512.New() }
+var SHA512 scram.HashGeneratorFcn = sha512.New
 
 type XDGSCRAMClient struct {
 	*scram.Client

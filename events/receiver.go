@@ -13,7 +13,8 @@ type EventHandler interface {
 
 type EventConsumer interface {
 	RegisterHandler(handler EventHandler)
-	Start(ctx context.Context) error
+	Start() error
+	Stop() error
 }
 
 var _ EventConsumer = &KafkaCloudEventsConsumer{}
@@ -50,9 +51,13 @@ func (k *KafkaCloudEventsConsumer) RegisterHandler(handler EventHandler) {
 	k.handlers = append(k.handlers, handler)
 }
 
-func (k *KafkaCloudEventsConsumer) Start(ctx context.Context) error {
+func (k *KafkaCloudEventsConsumer) Start() error {
 	defer k.consumer.Close(context.Background())
-	return k.client.StartReceiver(ctx, k.receive)
+	return k.client.StartReceiver(context.Background(), k.receive)
+}
+
+func (k *KafkaCloudEventsConsumer) Stop() error {
+	return nil
 }
 
 func (k *KafkaCloudEventsConsumer) receive(ce cloudevents.Event) {

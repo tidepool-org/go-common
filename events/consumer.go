@@ -2,18 +2,21 @@ package events
 
 import (
 	"context"
+	"log"
+	"sync"
+
 	"github.com/Shopify/sarama"
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/binding"
-	"log"
-	"sync"
 )
 
 type SaramaConsumer struct {
 	config             *CloudEventsConfig
 	consumerGroup      sarama.ConsumerGroup
 	ready              chan bool
+	stop               chan struct{}
+	done               chan error
 	topic              string
 	handlers           []EventHandler
 	deadLetterProducer *KafkaCloudEventsProducer
@@ -23,10 +26,11 @@ func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, err
 	if err := validateConsumerConfig(config); err != nil {
 		return nil, err
 	}
-
 	return &SaramaConsumer{
 		config:   config,
 		ready:    make(chan bool),
+		stop:     make(chan struct{}),
+		done:     make(chan error),
 		topic:    config.GetPrefixedTopic(),
 		handlers: make([]EventHandler, 0),
 	}, nil
@@ -80,13 +84,21 @@ func (s *SaramaConsumer) RegisterHandler(handler EventHandler) {
 	s.handlers = append(s.handlers, handler)
 }
 
-func (s *SaramaConsumer) Start(ctx context.Context) error {
+func (s *SaramaConsumer) Start() error {
 	if err := s.initialize(); err != nil {
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-s.stop
+		cancel()
+	}()
+
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
+
+	var consumeError error
 
 	go func() {
 		defer wg.Done()
@@ -96,6 +108,7 @@ func (s *SaramaConsumer) Start(ctx context.Context) error {
 			// recreated to get the new claims
 			if err := s.consumerGroup.Consume(ctx, []string{s.topic}, s); err != nil {
 				log.Printf("Error from consumer: %v", err)
+				consumeError = err
 				return
 			}
 			// check if context was cancelled, signaling that the consumer should stop
@@ -105,9 +118,29 @@ func (s *SaramaConsumer) Start(ctx context.Context) error {
 			s.ready = make(chan bool)
 		}
 	}()
-
 	wg.Wait()
-	return s.consumerGroup.Close()
+
+	closeErr := s.consumerGroup.Close()
+	if closeErr != nil {
+		log.Printf("Failed to close consumer group: %v", closeErr)
+	}
+
+	// Context was cancelled and the process was stopped
+	if ctx.Err() != nil {
+		s.done <- closeErr
+		close(s.done)
+		return nil
+	}
+	return consumeError
+}
+
+func (s *SaramaConsumer) Stop() error {
+	log.Printf("Stopping the Sarama Consumer")
+	// Signal that the consumer group should be shutdown
+	s.stop <- struct{}{}
+	close(s.stop)
+
+	return <-s.done
 }
 
 func (s *SaramaConsumer) initialize() error {

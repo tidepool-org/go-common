@@ -14,6 +14,8 @@ type SaramaConsumer struct {
 	config             *CloudEventsConfig
 	consumerGroup      sarama.ConsumerGroup
 	ready              chan bool
+	stop               chan struct{}
+	done               chan error
 	topic              string
 	handlers           []EventHandler
 	deadLetterProducer *KafkaCloudEventsProducer
@@ -27,6 +29,8 @@ func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, err
 	return &SaramaConsumer{
 		config:   config,
 		ready:    make(chan bool),
+		stop:    make(chan struct{}),
+		done:    make(chan error, 1),
 		topic:    config.GetPrefixedTopic(),
 		handlers: make([]EventHandler, 0),
 	}, nil
@@ -80,10 +84,16 @@ func (s *SaramaConsumer) RegisterHandler(handler EventHandler) {
 	s.handlers = append(s.handlers, handler)
 }
 
-func (s *SaramaConsumer) Start(ctx context.Context) error {
+func (s *SaramaConsumer) Start() error {
 	if err := s.initialize(); err != nil {
 		return err
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-s.stop
+		cancel()
+	}()
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -107,7 +117,23 @@ func (s *SaramaConsumer) Start(ctx context.Context) error {
 	}()
 
 	wg.Wait()
-	return s.consumerGroup.Close()
+
+	err := s.consumerGroup.Close()
+	s.done <- err
+	return err
+}
+
+func (s *SaramaConsumer) Stop(ctx context.Context) error {
+	// Signal that the consumer group should be shutdown
+	s.stop <- struct{}{}
+	close(s.stop)
+
+	select {
+		case e := <-s.done:
+			return e
+		case <-ctx.Done():
+			return ctx.Err()
+	}
 }
 
 func (s *SaramaConsumer) initialize() error {

@@ -2,6 +2,7 @@ package highwater
 
 import (
 	"bytes"
+	"context"
 	"encoding/gob"
 	"log"
 	"net/http"
@@ -10,6 +11,9 @@ import (
 	"strings"
 
 	"github.com/tidepool-org/go-common/clients/disc"
+	"go.opentelemetry.io/otel/api/global"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/semconv"
 )
 
 // Client interface that we will implement and mock
@@ -20,13 +24,13 @@ type Client interface {
 }
 
 type HighwaterClient struct {
-	hostGetter disc.HostGetter
+	host       *url.URL
 	config     *HighwaterClientConfig
 	httpClient *http.Client
 }
 
 type HighwaterClientBuilder struct {
-	hostGetter disc.HostGetter
+	host       *url.URL
 	config     *HighwaterClientConfig
 	httpClient *http.Client
 }
@@ -44,7 +48,12 @@ func NewHighwaterClientBuilder() *HighwaterClientBuilder {
 }
 
 func (b *HighwaterClientBuilder) WithHostGetter(val disc.HostGetter) *HighwaterClientBuilder {
-	b.hostGetter = val
+	b.host = &val.HostGet()[0]
+	return b
+}
+
+func (b *HighwaterClientBuilder) WithHost(host *url.URL) *HighwaterClientBuilder {
+	b.host = host
 	return b
 }
 
@@ -73,8 +82,8 @@ func (b *HighwaterClientBuilder) WithConfig(val *HighwaterClientConfig) *Highwat
 }
 
 func (b *HighwaterClientBuilder) Build() *HighwaterClient {
-	if b.hostGetter == nil {
-		panic("HighwaterClient requires a hostGetter to be set")
+	if b.host == nil {
+		panic("HighwaterClient requires a host to be set")
 	}
 	if b.config.Name == "" {
 		panic("HighwaterClient requires a name to be set")
@@ -92,19 +101,9 @@ func (b *HighwaterClientBuilder) Build() *HighwaterClient {
 	}
 
 	return &HighwaterClient{
-		hostGetter: b.hostGetter,
+		host:       b.host,
 		httpClient: b.httpClient,
 		config:     b.config,
-	}
-}
-
-func (client *HighwaterClient) getHost() *url.URL {
-	if hostArr := client.hostGetter.HostGet(); len(hostArr) > 0 {
-		cpy := new(url.URL)
-		*cpy = hostArr[0]
-		return cpy
-	} else {
-		return nil
 	}
 }
 
@@ -127,9 +126,9 @@ func (client *HighwaterClient) adjustEventParams(params map[string]string) []byt
 	return buf.Bytes()
 }
 
-func (client *HighwaterClient) PostServer(eventName, token string, params map[string]string) {
+func (client *HighwaterClient) PostServer(ctx context.Context, eventName, token string, params map[string]string) {
 
-	host := client.getHost()
+	host := client.host
 	if host == nil {
 		log.Println("No known highwater hosts.")
 		return
@@ -137,7 +136,12 @@ func (client *HighwaterClient) PostServer(eventName, token string, params map[st
 
 	host.Path = path.Join(host.Path, "server", client.config.Name, client.adjustEventName(eventName))
 
-	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	tr := global.Tracer("go-common tracer")
+
+	spanCtx, span := tr.Start(ctx, "PostServer", trace.WithAttributes(semconv.PeerServiceKey.String("highwater")))
+	defer span.End()
+
+	req, _ := http.NewRequestWithContext(spanCtx, "GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
 	req.Header.Add("x-tidepool-session-token", token)
 
 	res, err := client.httpClient.Do(req)
@@ -151,8 +155,8 @@ func (client *HighwaterClient) PostServer(eventName, token string, params map[st
 	return
 }
 
-func (client *HighwaterClient) PostThisUser(eventName, token string, params map[string]string) {
-	host := client.getHost()
+func (client *HighwaterClient) PostThisUser(ctx context.Context, eventName, token string, params map[string]string) {
+	host := client.host
 	if host == nil {
 		log.Println("No known highwater hosts.")
 		return
@@ -160,7 +164,12 @@ func (client *HighwaterClient) PostThisUser(eventName, token string, params map[
 
 	host.Path = path.Join(host.Path, "thisuser", client.adjustEventName(eventName))
 
-	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	tr := global.Tracer("go-common tracer")
+
+	spanCtx, span := tr.Start(ctx, "PostThisUser", trace.WithAttributes(semconv.PeerServiceKey.String("highwater")))
+	defer span.End()
+
+	req, _ := http.NewRequestWithContext(spanCtx, "GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
 	req.Header.Add("x-tidepool-session-token", token)
 
 	res, err := client.httpClient.Do(req)
@@ -174,16 +183,20 @@ func (client *HighwaterClient) PostThisUser(eventName, token string, params map[
 	return
 }
 
-func (client *HighwaterClient) PostWithUser(userId, eventName, token string, params map[string]string) {
-	host := client.getHost()
+func (client *HighwaterClient) PostWithUser(ctx context.Context, userId, eventName, token string, params map[string]string) {
+	host := client.host
 	if host == nil {
 		log.Println("No known highwater hosts.")
 		return
 	}
 
 	host.Path = path.Join(host.Path, "user", userId, client.adjustEventName(eventName))
+	tr := global.Tracer("go-common tracer")
 
-	req, _ := http.NewRequest("GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
+	spanCtx, span := tr.Start(ctx, "PostWithUser", trace.WithAttributes(semconv.PeerServiceKey.String("highwater")))
+	defer span.End()
+
+	req, _ := http.NewRequestWithContext(spanCtx, "GET", host.String(), bytes.NewBuffer(client.adjustEventParams(params)))
 	req.Header.Add("x-tidepool-session-token", token)
 
 	if _, err := client.httpClient.Do(req); err != nil {

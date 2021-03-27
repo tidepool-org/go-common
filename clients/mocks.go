@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"context"
 	"encoding/json"
 )
 
@@ -17,7 +18,7 @@ func NewGatekeeperMock(expectedPermissions Permissions, expectedError error) *Ga
 	return &GatekeeperMock{expectedPermissions, expectedError}
 }
 
-func (mock *GatekeeperMock) UserInGroup(userID, groupID string) (Permissions, error) {
+func (mock *GatekeeperMock) UserInGroup(ctx context.Context, userID, groupID string) (Permissions, error) {
 	if mock.expectedPermissions != nil || mock.expectedError != nil {
 		return mock.expectedPermissions, mock.expectedError
 	} else {
@@ -25,7 +26,7 @@ func (mock *GatekeeperMock) UserInGroup(userID, groupID string) (Permissions, er
 	}
 }
 
-func (mock *GatekeeperMock) UsersInGroup(groupID string) (UsersPermissions, error) {
+func (mock *GatekeeperMock) UsersInGroup(ctx context.Context, groupID string) (UsersPermissions, error) {
 	if mock.expectedPermissions != nil || mock.expectedError != nil {
 		return UsersPermissions{groupID: mock.expectedPermissions}, mock.expectedError
 	} else {
@@ -33,7 +34,7 @@ func (mock *GatekeeperMock) UsersInGroup(groupID string) (UsersPermissions, erro
 	}
 }
 
-func (mock *GatekeeperMock) SetPermissions(userID, groupID string, permissions Permissions) (Permissions, error) {
+func (mock *GatekeeperMock) SetPermissions(ctx context.Context, userID, groupID string, permissions Permissions) (Permissions, error) {
 	return Permissions{userID: Allowed}, nil
 }
 
@@ -42,11 +43,11 @@ func NewSeagullMock() *SeagullMock {
 	return &SeagullMock{}
 }
 
-func (mock *SeagullMock) GetPrivatePair(userID, hashName, token string) *PrivatePair {
+func (mock *SeagullMock) GetPrivatePair(ctx context.Context, userID, hashName, token string) *PrivatePair {
 	return &PrivatePair{ID: "mock.id.123", Value: "mock value"}
 }
 
-func (mock *SeagullMock) GetCollection(userID, collectionName, token string, v interface{}) error {
+func (mock *SeagullMock) GetCollection(ctx context.Context, userID, collectionName, token string, v interface{}) error {
 	json.Unmarshal([]byte(`{"Something":"anit no thing", "patient": {"birthday": "2016-01-01"}}`), &v)
 	return nil
 }

@@ -1,9 +1,11 @@
 package shoreline
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -33,14 +35,15 @@ func TestStart(t *testing.T) {
 	}))
 	defer srvr.Close()
 
+	shorelineHost, _ := url.Parse(srvr.URL)
 	shorelineClient := NewShorelineClientBuilder().
-		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
+		WithHost(shorelineHost).
 		WithName("test").
 		WithSecret("howdy ho, neighbor joe").
 		WithTokenRefreshInterval(10 * time.Millisecond).
 		Build()
 
-	err := shorelineClient.Start()
+	err := shorelineClient.Start(context.Background())
 
 	if err != nil {
 		t.Errorf("Failed start with error[%v]", err)
@@ -71,19 +74,20 @@ func TestLogin(t *testing.T) {
 	}))
 	defer srvr.Close()
 
+	shorelineHost, _ := url.Parse(srvr.URL)
 	shorelineClient := NewShorelineClientBuilder().
-		WithHostGetter(disc.NewStaticHostGetterFromString(srvr.URL)).
+		WithHost(shorelineHost).
 		WithName("test").
 		WithSecret("howdy ho, neighbor joe").
 		Build()
 
-	err := shorelineClient.Start()
+	err := shorelineClient.Start(context.Background())
 	if err != nil {
 		t.Errorf("Failed start with error[%v]", err)
 	}
 	defer shorelineClient.Close()
 
-	ud, tok, err := shorelineClient.Login("billy", "howdy")
+	ud, tok, err := shorelineClient.Login(context.Background(), "billy", "howdy")
 	if err != nil {
 		t.Errorf("Error on login[%v]", err)
 	}
@@ -115,13 +119,13 @@ func TestSignup(t *testing.T) {
 		WithSecret("howdy ho, neighbor joe").
 		Build()
 
-	err := client.Start()
+	err := client.Start(context.Background())
 	if err != nil {
 		t.Errorf("Failed start with error[%v]", err)
 	}
 	defer client.Close()
 
-	ud, err := client.Signup("new me", "howdy", "new.me@1234.abc")
+	ud, err := client.Signup(context.Background(), "new me", "howdy", "new.me@1234.abc")
 	if err != nil {
 		t.Errorf("Error on signup [%s]", err.Error())
 	}

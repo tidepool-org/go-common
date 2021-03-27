@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )

@@ -134,6 +134,13 @@ func (s *SaramaConsumer) Start() error {
 	}()
 
 	err := <-errChan
+	if err == ErrConsumerStopped {
+		return err
+	}
+
+	// The consumer group was terminated with an unexpected error.
+	// We need to call stop, so we cancel the context and stop the
+	// go routine so it doesn't leak on restart.
 	if e := s.Stop(); e != nil {
 		err = fmt.Errorf("%w: %s", err, e.Error())
 	}

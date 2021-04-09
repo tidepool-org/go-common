@@ -2,10 +2,11 @@ package events
 
 import (
 	"errors"
-	"github.com/avast/retry-go"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/avast/retry-go"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 
 type FaultTolerantConsumer struct {
 	config         *CloudEventsConfig
-	hanlders       []EventHandler
+	handlers       []EventHandler
 	m              sync.Mutex
 	delegate       EventConsumer
 	isShuttingDown bool
@@ -37,7 +38,7 @@ func NewFaultTolerantCloudEventsConsumer(config *CloudEventsConfig) (*FaultToler
 }
 
 func (f *FaultTolerantConsumer) RegisterHandler(handler EventHandler) {
-	f.hanlders = append(f.hanlders, handler)
+	f.handlers = append(f.handlers, handler)
 }
 
 func (f *FaultTolerantConsumer) Start() error {
@@ -79,7 +80,7 @@ func (f *FaultTolerantConsumer) recreateConsumer() error {
 	}
 
 	f.delegate = delegate
-	for _, h := range f.hanlders {
+	for _, h := range f.handlers {
 		f.RegisterHandler(h)
 	}
 	return nil
@@ -88,6 +89,10 @@ func (f *FaultTolerantConsumer) recreateConsumer() error {
 func (f *FaultTolerantConsumer) Stop() error {
 	f.m.Lock()
 	defer f.m.Unlock()
+
+	if f.delegate == nil {
+		return nil
+	}
 
 	f.isShuttingDown = true
 	err := f.delegate.Stop()

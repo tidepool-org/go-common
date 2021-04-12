@@ -81,7 +81,7 @@ func (f *FaultTolerantConsumer) recreateConsumer() error {
 
 	f.delegate = delegate
 	for _, h := range f.handlers {
-		f.RegisterHandler(h)
+		f.delegate.RegisterHandler(h)
 	}
 	return nil
 }

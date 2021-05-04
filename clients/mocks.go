@@ -50,3 +50,7 @@ func (mock *SeagullMock) GetCollection(userID, collectionName, token string, v i
 	json.Unmarshal([]byte(`{"Something":"anit no thing", "patient": {"birthday": "2016-01-01"}}`), &v)
 	return nil
 }
+
+func (mock *SeagullMock) UpdateCollection(userID, collectionName, token string, v interface{}) error {
+	return nil
+}

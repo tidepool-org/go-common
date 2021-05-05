@@ -156,6 +156,7 @@ func (client *SeagullClient) UpdateCollection(userID, collectionName, token stri
 	}
 
 	req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(body))
+	req.Header.Add("content-type", "application/json")
 	req.Header.Add("x-tidepool-session-token", token)
 
 	res, err := client.httpClient.Do(req)

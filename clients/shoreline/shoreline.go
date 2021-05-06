@@ -444,7 +444,7 @@ func (client *ShorelineClient) CreateCustodialUserForClinic(clinicId string, use
 
 	type request struct {
 		Username *string  `json:"username,omitempty"`
-		Emails   []string `json:"username,omitempty"`
+		Emails   []string `json:"emails,omitempty"`
 	}
 
 	payload := request{}

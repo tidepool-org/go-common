@@ -20,6 +20,10 @@ import (
 	"github.com/tidepool-org/go-common/jepson"
 )
 
+var (
+	ErrDuplicateUser = errors.New("user already exists")
+)
+
 // Client interface that we will implement and mock
 type Client interface {
 	Start() error
@@ -472,6 +476,8 @@ func (client *ShorelineClient) CreateCustodialUserForClinic(clinicId string, use
 				return nil, err
 			}
 			return ud, nil
+		case http.StatusConflict:
+			return nil, ErrDuplicateUser
 		default:
 			return nil, fmt.Errorf("unexpected status code from service: %v", res.StatusCode)
 		}

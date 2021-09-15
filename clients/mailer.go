@@ -11,13 +11,7 @@ type MailerClient struct {
 	producer *events.KafkaCloudEventsProducer
 }
 
-func NewMailerClient() (*MailerClient, error) {
-	config := &events.CloudEventsConfig{}
-	if err := config.LoadFromEnv(); err != nil {
-		return nil, err
-	}
-
-	config.KafkaTopic = MailerTopic
+func NewMailerClient(config *events.CloudEventsConfig) (*MailerClient, error) {
 	producer, err := events.NewKafkaCloudEventsProducer(config)
 	if err != nil {
 		return nil, err

@@ -7,19 +7,23 @@ import (
 
 const MailerTopic = "emails"
 
-type MailerClient struct {
+type MailerClient interface {
+	SendEmailTemplate(context.Context, events.SendEmailTemplateEvent) error
+}
+
+type mailerClient struct {
 	producer *events.KafkaCloudEventsProducer
 }
 
-func NewMailerClient(config *events.CloudEventsConfig) (*MailerClient, error) {
+func NewMailerClient(config *events.CloudEventsConfig) (MailerClient, error) {
 	producer, err := events.NewKafkaCloudEventsProducer(config)
 	if err != nil {
 		return nil, err
 	}
 
-	return &MailerClient{producer}, nil
+	return &mailerClient{producer}, nil
 }
 
-func (m *MailerClient) SendEmailTemplate(ctx context.Context, event events.SendEmailTemplateEvent) error {
+func (m *mailerClient) SendEmailTemplate(ctx context.Context, event events.SendEmailTemplateEvent) error {
 	return m.producer.Send(ctx, event)
 }

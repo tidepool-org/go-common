@@ -53,7 +53,7 @@ func (f *FaultTolerantConsumerGroup) restart() error {
 	}
 
 	err := f.delegate.Start()
-	log.Printf("Consumer exited. Reason: %v", err)
+	log.Printf("Consumer %v (%v) exited. Reason: %v", f.config.KafkaConsumerGroup, f.config.GetPrefixedTopic(), err)
 
 	if errors.Is(err, ErrConsumerStopped) {
 		return retry.Unrecoverable(err)

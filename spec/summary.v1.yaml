@@ -196,7 +196,7 @@ components:
       title: summaryperiod.v1
       description: ''
       properties:
-        averageGlucose:
+        avgGlucose:
           $ref: '#/components/schemas/AverageGlucose'
         glucoseManagementIndicator:
           type: number

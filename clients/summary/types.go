@@ -48,7 +48,7 @@ type Summary struct {
 // SummaryPeriod defines model for SummaryPeriod.
 type SummaryPeriod struct {
 	// Blood glucose value, in `mmol/L`
-	AverageGlucose             *AverageGlucose `json:"averageGlucose,omitempty"`
+	AvgGlucose                 *AverageGlucose `json:"avgGlucose,omitempty"`
 	GlucoseManagementIndicator *float64        `json:"glucoseManagementIndicator,omitempty"`
 	TimeCGMUseMinutes          *int            `json:"timeCGMUseMinutes,omitempty"`
 	TimeCGMUsePercent          *float64        `json:"timeCGMUsePercent,omitempty"`

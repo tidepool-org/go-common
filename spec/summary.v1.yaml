@@ -101,6 +101,35 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SummaryStat'
+    AverageGlucose:
+      title: Blood Glucose (mmol/L)
+      description: 'Blood glucose value, in `mmol/L`'
+      type: object
+      properties:
+        units:
+          title: Blood Unit (mmol/L)
+          type: string
+          enum:
+            - mmol/L
+            - mmol/l
+          example: mmol/L
+          x-tags:
+            - Data
+        value:
+          title: Blood Value (mmol/L)
+          description: A floating point value representing a `mmol/L` value.
+          type: number
+          format: float
+          minimum: 0
+          maximum: 55
+          example: 5.5
+          x-tags:
+            - Data
+      required:
+        - units
+        - value
+      x-tags:
+        - Data
     SummaryStat:
       type: object
       x-stoplight:
@@ -168,34 +197,7 @@ components:
       description: ''
       properties:
         averageGlucose:
-          title: Blood Glucose (mmol/L)
-          description: 'Blood glucose value, in `mmol/L`'
-          type: object
-          properties:
-            units:
-              title: Blood Unit (mmol/L)
-              type: string
-              enum:
-                - mmol/L
-                - mmol/l
-              example: mmol/L
-              x-tags:
-                - Data
-            value:
-              title: Blood Value (mmol/L)
-              description: A floating point value representing a `mmol/L` value.
-              type: number
-              format: float
-              minimum: 0
-              maximum: 55
-              example: 5.5
-              x-tags:
-                - Data
-          required:
-            - units
-            - value
-          x-tags:
-            - Data
+          $ref: '#/components/schemas/AverageGlucose'
         glucoseManagementIndicator:
           type: number
           x-go-type: float64

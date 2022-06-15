@@ -11,12 +11,23 @@ const (
 	SessionTokenScopes = "sessionToken.Scopes"
 )
 
-// Defines values for SummaryPeriodAverageGlucoseUnits.
+// Defines values for AverageGlucoseUnits.
 const (
-	SummaryPeriodAverageGlucoseUnitsMmolL SummaryPeriodAverageGlucoseUnits = "mmol/L"
+	AverageGlucoseUnitsMmolL AverageGlucoseUnits = "mmol/L"
 
-	SummaryPeriodAverageGlucoseUnitsMmoll SummaryPeriodAverageGlucoseUnits = "mmol/l"
+	AverageGlucoseUnitsMmoll AverageGlucoseUnits = "mmol/l"
 )
+
+// Blood glucose value, in `mmol/L`
+type AverageGlucose struct {
+	Units AverageGlucoseUnits `json:"units"`
+
+	// A floating point value representing a `mmol/L` value.
+	Value float32 `json:"value"`
+}
+
+// AverageGlucoseUnits defines model for AverageGlucose.Units.
+type AverageGlucoseUnits string
 
 // Summary defines model for Summary.
 type Summary struct {
@@ -37,35 +48,27 @@ type Summary struct {
 // SummaryPeriod defines model for SummaryPeriod.
 type SummaryPeriod struct {
 	// Blood glucose value, in `mmol/L`
-	AverageGlucose *struct {
-		Units SummaryPeriodAverageGlucoseUnits `json:"units"`
-
-		// A floating point value representing a `mmol/L` value.
-		Value float32 `json:"value"`
-	} `json:"averageGlucose,omitempty"`
-	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator,omitempty"`
-	TimeCGMUseMinutes          *int     `json:"timeCGMUseMinutes,omitempty"`
-	TimeCGMUsePercent          *float64 `json:"timeCGMUsePercent,omitempty"`
-	TimeCGMUseRecords          *int     `json:"timeCGMUseRecords,omitempty"`
-	TimeInHighMinutes          *int     `json:"timeInHighMinutes,omitempty"`
-	TimeInHighPercent          *float64 `json:"timeInHighPercent,omitempty"`
-	TimeInHighRecords          *int     `json:"timeInHighRecords,omitempty"`
-	TimeInLowMinutes           *int     `json:"timeInLowMinutes,omitempty"`
-	TimeInLowPercent           *float64 `json:"timeInLowPercent,omitempty"`
-	TimeInLowRecords           *int     `json:"timeInLowRecords,omitempty"`
-	TimeInTargetMinutes        *int     `json:"timeInTargetMinutes,omitempty"`
-	TimeInTargetPercent        *float64 `json:"timeInTargetPercent,omitempty"`
-	TimeInTargetRecords        *int     `json:"timeInTargetRecords,omitempty"`
-	TimeInVeryHighMinutes      *int     `json:"timeInVeryHighMinutes,omitempty"`
-	TimeInVeryHighPercent      *float64 `json:"timeInVeryHighPercent,omitempty"`
-	TimeInVeryHighRecords      *int     `json:"timeInVeryHighRecords,omitempty"`
-	TimeInVeryLowMinutes       *int     `json:"timeInVeryLowMinutes,omitempty"`
-	TimeInVeryLowPercent       *float64 `json:"timeInVeryLowPercent,omitempty"`
-	TimeInVeryLowRecords       *int     `json:"timeInVeryLowRecords,omitempty"`
+	AverageGlucose             *AverageGlucose `json:"averageGlucose,omitempty"`
+	GlucoseManagementIndicator *float64        `json:"glucoseManagementIndicator,omitempty"`
+	TimeCGMUseMinutes          *int            `json:"timeCGMUseMinutes,omitempty"`
+	TimeCGMUsePercent          *float64        `json:"timeCGMUsePercent,omitempty"`
+	TimeCGMUseRecords          *int            `json:"timeCGMUseRecords,omitempty"`
+	TimeInHighMinutes          *int            `json:"timeInHighMinutes,omitempty"`
+	TimeInHighPercent          *float64        `json:"timeInHighPercent,omitempty"`
+	TimeInHighRecords          *int            `json:"timeInHighRecords,omitempty"`
+	TimeInLowMinutes           *int            `json:"timeInLowMinutes,omitempty"`
+	TimeInLowPercent           *float64        `json:"timeInLowPercent,omitempty"`
+	TimeInLowRecords           *int            `json:"timeInLowRecords,omitempty"`
+	TimeInTargetMinutes        *int            `json:"timeInTargetMinutes,omitempty"`
+	TimeInTargetPercent        *float64        `json:"timeInTargetPercent,omitempty"`
+	TimeInTargetRecords        *int            `json:"timeInTargetRecords,omitempty"`
+	TimeInVeryHighMinutes      *int            `json:"timeInVeryHighMinutes,omitempty"`
+	TimeInVeryHighPercent      *float64        `json:"timeInVeryHighPercent,omitempty"`
+	TimeInVeryHighRecords      *int            `json:"timeInVeryHighRecords,omitempty"`
+	TimeInVeryLowMinutes       *int            `json:"timeInVeryLowMinutes,omitempty"`
+	TimeInVeryLowPercent       *float64        `json:"timeInVeryLowPercent,omitempty"`
+	TimeInVeryLowRecords       *int            `json:"timeInVeryLowRecords,omitempty"`
 }
-
-// SummaryPeriodAverageGlucoseUnits defines model for SummaryPeriod.AverageGlucose.Units.
-type SummaryPeriodAverageGlucoseUnits string
 
 // SummaryPeriods defines model for SummaryPeriods.
 type SummaryPeriods struct {

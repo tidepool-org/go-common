@@ -7,7 +7,9 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.2.0
 	github.com/cloudevents/sdk-go/v2 v2.2.0
+	github.com/deepmap/oapi-codegen v1.11.0
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

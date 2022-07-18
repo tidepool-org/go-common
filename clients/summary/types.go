@@ -31,16 +31,16 @@ type AverageGlucoseUnits string
 
 // Summary defines model for Summary.
 type Summary struct {
-	DailyStats               *[]SummaryStat  `json:"dailyStats,omitempty"`
 	FirstData                *time.Time      `json:"firstData,omitempty"`
 	HighGlucoseThreshold     *float64        `json:"highGlucoseThreshold,omitempty"`
+	HourlyStats              *[]SummaryStat  `json:"hourlyStats,omitempty"`
 	LastData                 *time.Time      `json:"lastData,omitempty"`
 	LastUpdatedDate          *time.Time      `json:"lastUpdatedDate,omitempty"`
 	LastUploadDate           *time.Time      `json:"lastUploadDate,omitempty"`
 	LowGlucoseThreshold      *float64        `json:"lowGlucoseThreshold,omitempty"`
 	OutdatedSince            *time.Time      `json:"outdatedSince,omitempty"`
 	Periods                  *SummaryPeriods `json:"periods,omitempty"`
-	TotalDays                *int            `json:"totalDays,omitempty"`
+	TotalHours               *int            `json:"totalHours,omitempty"`
 	VeryHighGlucoseThreshold *float64        `json:"veryHighGlucoseThreshold,omitempty"`
 	VeryLowGlucoseThreshold  *float64        `json:"veryLowGlucoseThreshold,omitempty"`
 }
@@ -73,6 +73,9 @@ type SummaryPeriod struct {
 // SummaryPeriods defines model for SummaryPeriods.
 type SummaryPeriods struct {
 	N14d *SummaryPeriod `json:"14d,omitempty"`
+	N1d  *SummaryPeriod `json:"1d,omitempty"`
+	N30d *SummaryPeriod `json:"30d,omitempty"`
+	N7d  *SummaryPeriod `json:"7d,omitempty"`
 }
 
 // SummaryStat defines model for SummaryStat.

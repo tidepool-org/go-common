@@ -80,7 +80,7 @@ components:
         outdatedSince:
           type: string
           format: date-time
-        totalDays:
+        totalHours:
           type: number
           x-go-type: int
         highGlucoseThreshold:
@@ -97,7 +97,7 @@ components:
           x-go-type: float64
         periods:
           $ref: '#/components/schemas/SummaryPeriods'
-        dailyStats:
+        hourlyStats:
           type: array
           items:
             $ref: '#/components/schemas/SummaryStat'
@@ -189,7 +189,13 @@ components:
       title: summaryperiods.v1
       description: ''
       properties:
+        1d:
+          $ref: '#/components/schemas/SummaryPeriod'
+        7d:
+          $ref: '#/components/schemas/SummaryPeriod'
         14d:
+          $ref: '#/components/schemas/SummaryPeriod'
+        30d:
           $ref: '#/components/schemas/SummaryPeriod'
     SummaryPeriod:
       type: object

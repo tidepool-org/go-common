@@ -77,6 +77,8 @@ components:
         lastUploadDate:
           type: string
           format: date-time
+        hasLastUploadDate:
+          type: boolean
         outdatedSince:
           type: string
           format: date-time
@@ -207,6 +209,8 @@ components:
         glucoseManagementIndicator:
           type: number
           x-go-type: float64
+        hasGlucoseManagementIndicator:
+          type: boolean
         timeInTargetPercent:
           type: number
           x-go-type: float64
@@ -255,6 +259,8 @@ components:
         timeCGMUsePercent:
           type: number
           x-go-type: float64
+        hasTimeCGMUsePercent:
+          type: boolean
         timeCGMUseMinutes:
           type: number
           x-go-type: int

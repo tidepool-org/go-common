@@ -29,76 +29,169 @@ type AverageGlucose struct {
 // AverageGlucoseUnits defines model for AverageGlucose.Units.
 type AverageGlucoseUnits string
 
-// Summary defines model for Summary.
+// A summary of a users recent glucose values
 type Summary struct {
-	FirstData                *time.Time      `json:"firstData,omitempty"`
-	HasLastUploadDate        *bool           `json:"hasLastUploadDate,omitempty"`
-	HighGlucoseThreshold     *float64        `json:"highGlucoseThreshold,omitempty"`
-	HourlyStats              *[]SummaryStat  `json:"hourlyStats,omitempty"`
-	LastData                 *time.Time      `json:"lastData,omitempty"`
-	LastUpdatedDate          *time.Time      `json:"lastUpdatedDate,omitempty"`
-	LastUploadDate           *time.Time      `json:"lastUploadDate,omitempty"`
-	LowGlucoseThreshold      *float64        `json:"lowGlucoseThreshold,omitempty"`
-	OutdatedSince            *time.Time      `json:"outdatedSince,omitempty"`
-	Periods                  *SummaryPeriods `json:"periods,omitempty"`
-	TotalHours               *int            `json:"totalHours,omitempty"`
-	VeryHighGlucoseThreshold *float64        `json:"veryHighGlucoseThreshold,omitempty"`
-	VeryLowGlucoseThreshold  *float64        `json:"veryLowGlucoseThreshold,omitempty"`
+	// Date of the first included value
+	FirstData         *time.Time `json:"firstData,omitempty"`
+	HasLastUploadDate *bool      `json:"hasLastUploadDate,omitempty"`
+
+	// Threshold used for determining if a value is high
+	HighGlucoseThreshold *float64 `json:"highGlucoseThreshold,omitempty"`
+
+	// Rotating list containing the stats for each currently tracked hour in order
+	HourlyStats *[]SummaryStat `json:"hourlyStats,omitempty"`
+
+	// Date of the last calculated value
+	LastData *time.Time `json:"lastData,omitempty"`
+
+	// Date of the last calculation
+	LastUpdatedDate *time.Time `json:"lastUpdatedDate,omitempty"`
+
+	// Created date of the last calculated value
+	LastUploadDate *time.Time `json:"lastUploadDate,omitempty"`
+
+	// Threshold used for determining if a value is low
+	LowGlucoseThreshold *float64 `json:"lowGlucoseThreshold,omitempty"`
+
+	// Date of the first user upload after lastData, removed when calculated
+	OutdatedSince *time.Time `json:"outdatedSince,omitempty"`
+
+	// A map to each supported summary period
+	Periods *SummaryPeriods `json:"periods,omitempty"`
+
+	// Total hours represented in the houly stats
+	TotalHours *int `json:"totalHours,omitempty"`
+
+	// Threshold used for determining if a value is very high
+	VeryHighGlucoseThreshold *float64 `json:"veryHighGlucoseThreshold,omitempty"`
+
+	// Threshold used for determining if a value is very low
+	VeryLowGlucoseThreshold *float64 `json:"veryLowGlucoseThreshold,omitempty"`
 }
 
-// SummaryPeriod defines model for SummaryPeriod.
+// Summary of a specific time period (currently: 1d, 7d, 14d, 30d)
 type SummaryPeriod struct {
 	// Blood glucose value, in `mmol/L`
-	AvgGlucose                    *AverageGlucose `json:"avgGlucose,omitempty"`
-	GlucoseManagementIndicator    *float64        `json:"glucoseManagementIndicator,omitempty"`
-	HasGlucoseManagementIndicator *bool           `json:"hasGlucoseManagementIndicator,omitempty"`
-	HasTimeCGMUsePercent          *bool           `json:"hasTimeCGMUsePercent,omitempty"`
-	TimeCGMUseMinutes             *int            `json:"timeCGMUseMinutes,omitempty"`
-	TimeCGMUsePercent             *float64        `json:"timeCGMUsePercent,omitempty"`
-	TimeCGMUseRecords             *int            `json:"timeCGMUseRecords,omitempty"`
-	TimeInHighMinutes             *int            `json:"timeInHighMinutes,omitempty"`
-	TimeInHighPercent             *float64        `json:"timeInHighPercent,omitempty"`
-	TimeInHighRecords             *int            `json:"timeInHighRecords,omitempty"`
-	TimeInLowMinutes              *int            `json:"timeInLowMinutes,omitempty"`
-	TimeInLowPercent              *float64        `json:"timeInLowPercent,omitempty"`
-	TimeInLowRecords              *int            `json:"timeInLowRecords,omitempty"`
-	TimeInTargetMinutes           *int            `json:"timeInTargetMinutes,omitempty"`
-	TimeInTargetPercent           *float64        `json:"timeInTargetPercent,omitempty"`
-	TimeInTargetRecords           *int            `json:"timeInTargetRecords,omitempty"`
-	TimeInVeryHighMinutes         *int            `json:"timeInVeryHighMinutes,omitempty"`
-	TimeInVeryHighPercent         *float64        `json:"timeInVeryHighPercent,omitempty"`
-	TimeInVeryHighRecords         *int            `json:"timeInVeryHighRecords,omitempty"`
-	TimeInVeryLowMinutes          *int            `json:"timeInVeryLowMinutes,omitempty"`
-	TimeInVeryLowPercent          *float64        `json:"timeInVeryLowPercent,omitempty"`
-	TimeInVeryLowRecords          *int            `json:"timeInVeryLowRecords,omitempty"`
+	AverageGlucose *AverageGlucose `json:"averageGlucose,omitempty"`
+
+	// A derived value which emulates A1C
+	GlucoseManagementIndicator    *float64 `json:"glucoseManagementIndicator,omitempty"`
+	HasGlucoseManagementIndicator *bool    `json:"hasGlucoseManagementIndicator,omitempty"`
+	HasTimeCGMUsePercent          *bool    `json:"hasTimeCGMUsePercent,omitempty"`
+
+	// Counter of minutes spent wearing a cgm
+	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`
+
+	// Percentage of time spent wearing a cgm
+	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent,omitempty"`
+
+	// Counter of minutes spent wearing a cgm
+	TimeCGMUseRecords *int `json:"timeCGMUseRecords,omitempty"`
+
+	// Counter of minutes spent in high glucose range
+	TimeInHighMinutes *int `json:"timeInHighMinutes,omitempty"`
+
+	// Percentage of time spent in high glucose range
+	TimeInHighPercent *float64 `json:"timeInHighPercent,omitempty"`
+
+	// Counter of records in high glucose range
+	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
+
+	// Counter of minutes spent in low glucose range
+	TimeInLowMinutes *int `json:"timeInLowMinutes,omitempty"`
+
+	// Percentage of time spent in low glucose range
+	TimeInLowPercent *float64 `json:"timeInLowPercent,omitempty"`
+
+	// Counter of records in low glucose range
+	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
+
+	// Counter of minutes spent in target glucose range
+	TimeInTargetMinutes *int `json:"timeInTargetMinutes,omitempty"`
+
+	// Percentage of time spent in target glucose range
+	TimeInTargetPercent *float64 `json:"timeInTargetPercent,omitempty"`
+
+	// Counter of records in target glucose range
+	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
+
+	// Counter of minutes spent in very high glucose range
+	TimeInVeryHighMinutes *int `json:"timeInVeryHighMinutes,omitempty"`
+
+	// Percentage of time spent in very high glucose range
+	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent,omitempty"`
+
+	// Counter of records in very high glucose range
+	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
+
+	// Counter of minutes spent in very low glucose range
+	TimeInVeryLowMinutes *int `json:"timeInVeryLowMinutes,omitempty"`
+
+	// Percentage of time spent in very low glucose range
+	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent,omitempty"`
+
+	// Counter of records in very low glucose range
+	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
 }
 
-// SummaryPeriods defines model for SummaryPeriods.
+// A map to each supported summary period
 type SummaryPeriods struct {
+	// Summary of a specific time period (currently: 1d, 7d, 14d, 30d)
 	N14d *SummaryPeriod `json:"14d,omitempty"`
-	N1d  *SummaryPeriod `json:"1d,omitempty"`
+
+	// Summary of a specific time period (currently: 1d, 7d, 14d, 30d)
+	N1d *SummaryPeriod `json:"1d,omitempty"`
+
+	// Summary of a specific time period (currently: 1d, 7d, 14d, 30d)
 	N30d *SummaryPeriod `json:"30d,omitempty"`
-	N7d  *SummaryPeriod `json:"7d,omitempty"`
+
+	// Summary of a specific time period (currently: 1d, 7d, 14d, 30d)
+	N7d *SummaryPeriod `json:"7d,omitempty"`
 }
 
-// SummaryStat defines model for SummaryStat.
+// Series of counters which represent one hour of a users data
 type SummaryStat struct {
-	Date                  *time.Time `json:"date,omitempty"`
-	DeviceId              *string    `json:"deviceId,omitempty"`
-	LastRecordTime        *time.Time `json:"lastRecordTime,omitempty"`
-	TimeCGMUseMinutes     *int       `json:"timeCGMUseMinutes,omitempty"`
-	TimeCGMUseRecords     *int       `json:"timeCGMUseRecords,omitempty"`
-	TimeInHighMinutes     *int       `json:"timeInHighMinutes,omitempty"`
-	TimeInHighRecords     *int       `json:"timeInHighRecords,omitempty"`
-	TimeInLowMinutes      *int       `json:"timeInLowMinutes,omitempty"`
-	TimeInLowRecords      *int       `json:"timeInLowRecords,omitempty"`
-	TimeInTargetMinutes   *int       `json:"timeInTargetMinutes,omitempty"`
-	TimeInTargetRecords   *int       `json:"timeInTargetRecords,omitempty"`
-	TimeInVeryHighMinutes *int       `json:"timeInVeryHighMinutes,omitempty"`
-	TimeInVeryHighRecords *int       `json:"timeInVeryHighRecords,omitempty"`
-	TimeInVeryLowMinutes  *int       `json:"timeInVeryLowMinutes,omitempty"`
-	TimeInVeryLowRecords  *int       `json:"timeInVeryLowRecords,omitempty"`
-	TotalGlucose          *float64   `json:"totalGlucose,omitempty"`
+	Date           *time.Time `json:"date,omitempty"`
+	LastRecordTime *time.Time `json:"lastRecordTime,omitempty"`
+
+	// Counter of minutes using a cgm
+	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`
+
+	// Counter of records wearing a cgm
+	TimeCGMUseRecords *int `json:"timeCGMUseRecords,omitempty"`
+
+	// Counter of minutes spent in high glucose range
+	TimeInHighMinutes *int `json:"timeInHighMinutes,omitempty"`
+
+	// Counter of records in high glucose range
+	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
+
+	// Counter of minutes spent in low glucose range
+	TimeInLowMinutes *int `json:"timeInLowMinutes,omitempty"`
+
+	// Counter of records in low glucose range
+	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
+
+	// Counter of minutes spent in target glucose range
+	TimeInTargetMinutes *int `json:"timeInTargetMinutes,omitempty"`
+
+	// Counter of records in target glucose range
+	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
+
+	// Counter of minutes spent in very high glucose range
+	TimeInVeryHighMinutes *int `json:"timeInVeryHighMinutes,omitempty"`
+
+	// Counter of records in very high glucose range
+	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
+
+	// Counter of minutes spent in very low glucose range
+	TimeInVeryLowMinutes *int `json:"timeInVeryLowMinutes,omitempty"`
+
+	// Counter of records in very low glucose range
+	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
+
+	// Total value of all glucose records
+	TotalGlucose *float64 `json:"totalGlucose,omitempty"`
 }
 
 // String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))

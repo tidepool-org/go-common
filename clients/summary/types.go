@@ -76,8 +76,14 @@ type SummaryPeriod struct {
 
 	// A derived value which emulates A1C
 	GlucoseManagementIndicator    *float64 `json:"glucoseManagementIndicator,omitempty"`
+	HasAverageGlucose             *bool    `json:"hasAverageGlucose,omitempty"`
 	HasGlucoseManagementIndicator *bool    `json:"hasGlucoseManagementIndicator,omitempty"`
 	HasTimeCGMUsePercent          *bool    `json:"hasTimeCGMUsePercent,omitempty"`
+	HasTimeInHighPercent          *bool    `json:"hasTimeInHighPercent,omitempty"`
+	HasTimeInLowPercent           *bool    `json:"hasTimeInLowPercent,omitempty"`
+	HasTimeInTargetPercent        *bool    `json:"hasTimeInTargetPercent,omitempty"`
+	HasTimeInVeryHighPercent      *bool    `json:"hasTimeInVeryHighPercent,omitempty"`
+	HasTimeInVeryLowPercent       *bool    `json:"hasTimeInVeryLowPercent,omitempty"`
 
 	// Counter of minutes spent wearing a cgm
 	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`

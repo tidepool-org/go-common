@@ -60,60 +60,6 @@ components:
       description: 'String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))'
       readOnly: true
       x-go-type: string
-    Summary:
-      type: object
-      title: summary.v1
-      description: A summary of a users recent glucose values
-      properties:
-        lastUpdatedDate:
-          description: Date of the last calculation
-          type: string
-          format: date-time
-        firstData:
-          description: Date of the first included value
-          type: string
-          format: date-time
-        lastData:
-          description: Date of the last calculated value
-          type: string
-          format: date-time
-        lastUploadDate:
-          description: Created date of the last calculated value
-          type: string
-          format: date-time
-        hasLastUploadDate:
-          type: boolean
-        outdatedSince:
-          description: 'Date of the first user upload after lastData, removed when calculated'
-          type: string
-          format: date-time
-        totalHours:
-          description: Total hours represented in the houly stats
-          type: number
-          x-go-type: int
-        highGlucoseThreshold:
-          description: Threshold used for determining if a value is high
-          type: number
-          x-go-type: float64
-        veryHighGlucoseThreshold:
-          description: Threshold used for determining if a value is very high
-          type: number
-          x-go-type: float64
-        lowGlucoseThreshold:
-          description: Threshold used for determining if a value is low
-          type: number
-          x-go-type: float64
-        veryLowGlucoseThreshold:
-          description: Threshold used for determining if a value is very low
-          type: number
-          x-go-type: float64
-        periods:
-          $ref: '#/components/schemas/SummaryPeriods'
-        hourlyStats:
-          type: array
-          description: Rotating list containing the stats for each currently tracked hour in order
-          items:
-            $ref: '#/components/schemas/SummaryStat'
     AverageGlucose:
       title: Blood Glucose (mmol/L)
       description: 'Blood glucose value, in `mmol/L`'
@@ -143,11 +89,91 @@ components:
         - value
       x-tags:
         - Data
-    SummaryStat:
+    BGMPeriod:
       type: object
-      x-stoplight:
-        id: rul58weln9wr3
-      title: summarystat.v1
+      title: bgmperiod.v1
+      description: 'Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)'
+      properties:
+        averageGlucose:
+          $ref: '#/components/schemas/AverageGlucose'
+        hasAverageGlucose:
+          type: boolean
+        timeInTargetPercent:
+          description: Percentage of time spent in target glucose range
+          type: number
+          example: 0.35
+          x-go-type: float64
+        hasTimeInTargetPercent:
+          type: boolean
+        timeInTargetRecords:
+          description: Counter of records in target glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInHighPercent:
+          description: Percentage of time spent in high glucose range
+          type: number
+          example: 0.35
+          x-go-type: float64
+        hasTimeInHighPercent:
+          type: boolean
+        timeInHighRecords:
+          description: Counter of records in high glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInVeryHighPercent:
+          description: Percentage of time spent in very high glucose range
+          type: number
+          example: 0.35
+          x-go-type: float64
+        hasTimeInVeryHighPercent:
+          type: boolean
+        timeInVeryHighRecords:
+          description: Counter of records in very high glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInLowPercent:
+          description: Percentage of time spent in low glucose range
+          type: number
+          example: 0.35
+          x-go-type: float64
+        hasTimeInLowPercent:
+          type: boolean
+        timeInLowRecords:
+          description: Counter of records in low glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInVeryLowPercent:
+          description: Percentage of time spent in very low glucose range
+          type: number
+          example: 0.35
+          x-go-type: float64
+        hasTimeInVeryLowPercent:
+          type: boolean
+        timeInVeryLowRecords:
+          description: Counter of records in very low glucose range
+          type: number
+          example: 10
+          x-go-type: int
+    BGMPeriods:
+      type: object
+      title: bgmperiods.v1
+      description: A map to each supported BGM summary period
+      properties:
+        1d:
+          $ref: '#/components/schemas/BGMPeriod'
+        7d:
+          $ref: '#/components/schemas/BGMPeriod'
+        14d:
+          $ref: '#/components/schemas/BGMPeriod'
+        30d:
+          $ref: '#/components/schemas/BGMPeriod'
+    BGMStats:
+      type: object
+      title: bgmstats.v1
       description: Series of counters which represent one hour of a users data
       properties:
         date:
@@ -156,50 +182,25 @@ components:
         lastRecordTime:
           type: string
           format: date-time
-        timeInTargetMinutes:
-          description: Counter of minutes spent in target glucose range
-          type: number
-          example: 200
-          x-go-type: int
         timeInTargetRecords:
           description: Counter of records in target glucose range
           type: number
           example: 10
-          x-go-type: int
-        timeInHighMinutes:
-          description: Counter of minutes spent in high glucose range
-          type: number
-          example: 200
           x-go-type: int
         timeInHighRecords:
           description: Counter of records in high glucose range
           type: number
           example: 10
           x-go-type: int
-        timeInVeryHighMinutes:
-          description: Counter of minutes spent in very high glucose range
-          type: number
-          example: 200
-          x-go-type: int
         timeInVeryHighRecords:
           description: Counter of records in very high glucose range
           type: number
           example: 10
           x-go-type: int
-        timeInLowMinutes:
-          description: Counter of minutes spent in low glucose range
-          type: number
-          example: 200
-          x-go-type: int
         timeInLowRecords:
           description: Counter of records in low glucose range
           type: number
           example: 10
-          x-go-type: int
-        timeInVeryLowMinutes:
-          description: Counter of minutes spent in very low glucose range
-          type: number
-          example: 200
           x-go-type: int
         timeInVeryLowRecords:
           description: Counter of records in very low glucose range
@@ -211,33 +212,48 @@ components:
           x-go-type: float64
           description: Total value of all glucose records
           example: 1234.56
-        timeCGMUseMinutes:
-          description: Counter of minutes using a cgm
-          type: number
-          example: 200
-          x-go-type: int
-        timeCGMUseRecords:
-          description: Counter of records wearing a cgm
-          type: number
-          example: 10
-          x-go-type: int
-    SummaryPeriods:
+    BGMSummary:
       type: object
-      title: summaryperiods.v1
-      description: A map to each supported summary period
+      title: bgmsummary.v1
+      description: A summary of a users recent BGM glucose values
       properties:
-        1d:
-          $ref: '#/components/schemas/SummaryPeriod'
-        7d:
-          $ref: '#/components/schemas/SummaryPeriod'
-        14d:
-          $ref: '#/components/schemas/SummaryPeriod'
-        30d:
-          $ref: '#/components/schemas/SummaryPeriod'
-    SummaryPeriod:
+        lastUpdatedDate:
+          description: Date of the last calculation
+          type: string
+          format: date-time
+        firstData:
+          description: Date of the first included value
+          type: string
+          format: date-time
+        lastData:
+          description: Date of the last calculated value
+          type: string
+          format: date-time
+        lastUploadDate:
+          description: Created date of the last calculated value
+          type: string
+          format: date-time
+        hasLastUploadDate:
+          type: boolean
+        outdatedSince:
+          description: 'Date of the first user upload after lastData, removed when calculated'
+          type: string
+          format: date-time
+        totalHours:
+          description: Total hours represented in the hourly stats
+          type: number
+          x-go-type: int
+        periods:
+          $ref: '#/components/schemas/BGMPeriods'
+        hourlyStats:
+          type: array
+          description: Rotating list containing the stats for each currently tracked hour in order
+          items:
+            $ref: '#/components/schemas/BGMStats'
+    CGMPeriod:
       type: object
-      title: summaryperiod.v1
-      description: 'Summary of a specific time period (currently: 1d, 7d, 14d, 30d)'
+      title: cgmperiod.v1
+      description: 'Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)'
       properties:
         averageGlucose:
           $ref: '#/components/schemas/AverageGlucose'
@@ -352,6 +368,171 @@ components:
           type: number
           example: 10
           x-go-type: int
+    CGMPeriods:
+      type: object
+      title: cgmperiods.v1
+      description: A map to each supported CGM summary period
+      properties:
+        1d:
+          $ref: '#/components/schemas/CGMPeriod'
+        7d:
+          $ref: '#/components/schemas/CGMPeriod'
+        14d:
+          $ref: '#/components/schemas/CGMPeriod'
+        30d:
+          $ref: '#/components/schemas/CGMPeriod'
+    CGMStats:
+      type: object
+      title: cgmstats.v1
+      description: Series of counters which represent one hour of a users data
+      properties:
+        date:
+          type: string
+          format: date-time
+        lastRecordTime:
+          type: string
+          format: date-time
+        timeInTargetMinutes:
+          description: Counter of minutes spent in target glucose range
+          type: number
+          example: 200
+          x-go-type: int
+        timeInTargetRecords:
+          description: Counter of records in target glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInHighMinutes:
+          description: Counter of minutes spent in high glucose range
+          type: number
+          example: 200
+          x-go-type: int
+        timeInHighRecords:
+          description: Counter of records in high glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInVeryHighMinutes:
+          description: Counter of minutes spent in very high glucose range
+          type: number
+          example: 200
+          x-go-type: int
+        timeInVeryHighRecords:
+          description: Counter of records in very high glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInLowMinutes:
+          description: Counter of minutes spent in low glucose range
+          type: number
+          example: 200
+          x-go-type: int
+        timeInLowRecords:
+          description: Counter of records in low glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInVeryLowMinutes:
+          description: Counter of minutes spent in very low glucose range
+          type: number
+          example: 200
+          x-go-type: int
+        timeInVeryLowRecords:
+          description: Counter of records in very low glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        totalGlucose:
+          type: number
+          x-go-type: float64
+          description: Total value of all glucose records
+          example: 1234.56
+        timeCGMUseMinutes:
+          description: Counter of minutes using a cgm
+          type: number
+          example: 200
+          x-go-type: int
+        timeCGMUseRecords:
+          description: Counter of records wearing a cgm
+          type: number
+          example: 10
+          x-go-type: int
+    CGMSummary:
+      type: object
+      title: cgmsummary.v1
+      description: A summary of a users recent CGM glucose values
+      properties:
+        lastUpdatedDate:
+          description: Date of the last calculation
+          type: string
+          format: date-time
+        firstData:
+          description: Date of the first included value
+          type: string
+          format: date-time
+        lastData:
+          description: Date of the last calculated value
+          type: string
+          format: date-time
+        lastUploadDate:
+          description: Created date of the last calculated value
+          type: string
+          format: date-time
+        hasLastUploadDate:
+          type: boolean
+        outdatedSince:
+          description: 'Date of the first user upload after lastData, removed when calculated'
+          type: string
+          format: date-time
+        totalHours:
+          description: Total hours represented in the hourly stats
+          type: number
+          x-go-type: int
+        periods:
+          $ref: '#/components/schemas/CGMPeriods'
+        hourlyStats:
+          type: array
+          description: Rotating list containing the stats for each currently tracked hour in order
+          items:
+            $ref: '#/components/schemas/CGMStats'
+    Summary:
+      type: object
+      title: summary.v1
+      description: A summary of a users recent glucose values
+      properties:
+        userId:
+          $ref: '#/components/schemas/TidepoolUserId'
+        cgmSummary:
+          $ref: '#/components/schemas/CGMSummary'
+        bgmSummary:
+          $ref: '#/components/schemas/BGMSummary'
+        config:
+          $ref: '#/components/schemas/Config'
+    Config:
+      type: object
+      title: config.v1
+      description: Summary schema version and calculation configuration
+      properties:
+        schemaVersion:
+          description: Summary schema version
+          type: number
+          x-go-type: int
+        highGlucoseThreshold:
+          description: Threshold used for determining if a value is high
+          type: number
+          x-go-type: float64
+        veryHighGlucoseThreshold:
+          description: Threshold used for determining if a value is very high
+          type: number
+          x-go-type: float64
+        lowGlucoseThreshold:
+          description: Threshold used for determining if a value is low
+          type: number
+          x-go-type: float64
+        veryLowGlucoseThreshold:
+          description: Threshold used for determining if a value is very low
+          type: number
+          x-go-type: float64
   securitySchemes:
     sessionToken:
       description: Tidepool Session Token

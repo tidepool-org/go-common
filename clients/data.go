@@ -14,13 +14,13 @@ import (
 )
 
 type (
-	SourceArray []*Source
+	DataSourceArray []*DataSource
 	//Inteface so that we can mock dataClient for tests
 	Data interface {
 		//userID  -- the Tidepool-assigned userID
 		//
 		// returns the Data Sources for the user
-		ListSources(userID string) (SourceArray, error)
+		ListSources(userID string) (DataSourceArray, error)
 	}
 
 	DataClient struct {
@@ -36,7 +36,7 @@ type (
 	}
 )
 
-type Source struct {
+type DataSource struct {
 	ID                *string              `json:"id,omitempty" bson:"id,omitempty"`
 	UserID            *string              `json:"userId,omitempty" bson:"userId,omitempty"`
 	ProviderType      *string              `json:"providerType,omitempty" bson:"providerType,omitempty"`
@@ -91,7 +91,7 @@ func (b *dataClientBuilder) Build() *DataClient {
 	}
 }
 
-func (client *DataClient) ListSources(userID string) (SourceArray, error) {
+func (client *DataClient) ListSources(userID string) (DataSourceArray, error) {
 	host := client.getHost()
 	if host == nil {
 		return nil, errors.New("No known data hosts")
@@ -108,7 +108,7 @@ func (client *DataClient) ListSources(userID string) (SourceArray, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode == 200 {
-		retVal := SourceArray{}
+		retVal := DataSourceArray{}
 		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
 			log.Println(err)
 			return nil, &status.StatusError{status.NewStatus(500, "ListSources Unable to parse response.")}

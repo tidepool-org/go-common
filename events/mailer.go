@@ -1,6 +1,11 @@
 package events
 
-import cloudevents "github.com/cloudevents/sdk-go/v2"
+import (
+	"encoding/json"
+	"fmt"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+)
 
 const (
 	SendEmailTemplateEventType = "email_template:send"
@@ -39,6 +44,12 @@ func (d DelegatingEmailEventHandler) CanHandle(ce cloudevents.Event) bool {
 }
 
 func (d DelegatingEmailEventHandler) Handle(ce cloudevents.Event) error {
+	s, _ := json.MarshalIndent(ce.Type(), "", "\t")
+	fmt.Println("ce.Type", string(s))
+
+	s, _ = json.MarshalIndent(ce, "", "\t")
+	fmt.Println("ce", string(s))
+
 	if ce.Type() != SendEmailTemplateEventType {
 		// ignore invalid events
 		return nil

@@ -36,6 +36,7 @@ type Client interface {
 	UpdateUser(userID string, userUpdate UserUpdate, token string) error
 	CreateCustodialUserForClinic(clinicId string, userData CustodialUserData, token string) (*UserData, error)
 	DeleteUserSessions(userID, token string) error
+	CreateRestrictedToken(userID, expirationTime string, paths []string, token string) (*RestrictedToken, error)
 }
 
 // ShorelineClient manages the local data for a client. A client is intended to be shared among multiple
@@ -85,6 +86,16 @@ type CustodialUserData struct {
 type TokenData struct {
 	UserID   string // the UserID stored in the token
 	IsServer bool   // true or false depending on whether the token was a servertoken
+}
+
+// TokenData is the data structure returned from a successful CheckToken query.
+type RestrictedToken struct {
+	ID             string     `json:"id" bson:"id"`
+	UserID         string     `json:"userId" bson:"userId"`
+	Paths          *[]string  `json:"paths,omitempty" bson:"paths,omitempty"`
+	ExpirationTime time.Time  `json:"expirationTime" bson:"expirationTime"`
+	CreatedTime    time.Time  `json:"createdTime" bson:"createdTime"`
+	ModifiedTime   *time.Time `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 }
 
 type ShorelineClientBuilder struct {
@@ -514,10 +525,10 @@ func (client *ShorelineClient) DeleteUserSessions(userID, token string) error {
 }
 
 // DeleteUserSession deletes all active sessions for a given user
-func (client *ShorelineClient) CreateRestrictedToken(userID, expirationTime string, paths []string, token string) error {
+func (client *ShorelineClient) CreateRestrictedToken(userID, expirationTime string, paths []string, token string) (*RestrictedToken, error) {
 	host := client.getHost()
 	if host == nil {
-		return errors.New("No known user-api hosts.")
+		return nil, errors.New("No known user-api hosts.")
 	}
 
 	host.Path = path.Join(host.Path, "v1", "users", userID, "restricted_tokens")
@@ -527,15 +538,20 @@ func (client *ShorelineClient) CreateRestrictedToken(userID, expirationTime stri
 
 	res, err := client.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "couldn't create restricted token")
+		return nil, errors.Wrap(err, "couldn't create restricted token")
 	}
 	defer res.Body.Close()
 
 	switch res.StatusCode {
-	case http.StatusNoContent:
-		return nil
+	case http.StatusCreated:
+		var td RestrictedToken
+		if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
+			log.Println("Error parsing JSON results", err)
+			return nil, nil
+		}
+		return &td, nil
 	default:
-		return &status.StatusError{
+		return nil, &status.StatusError{
 			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL),
 		}
 	}

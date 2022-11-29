@@ -36,7 +36,7 @@ type Client interface {
 	UpdateUser(userID string, userUpdate UserUpdate, token string) error
 	CreateCustodialUserForClinic(clinicId string, userData CustodialUserData, token string) (*UserData, error)
 	DeleteUserSessions(userID, token string) error
-	CreateRestrictedToken(userID, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
+	CreateRestrictedToken(userID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
 }
 
 // ShorelineClient manages the local data for a client. A client is intended to be shared among multiple

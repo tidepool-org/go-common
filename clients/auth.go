@@ -2,6 +2,7 @@ package clients
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -87,7 +88,7 @@ func (b *authClientBuilder) Build() *AuthClient {
 func (client *AuthClient) CreateRestrictedToken(userID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error) {
 	host := client.getHost()
 	if host == nil {
-		return nil, errors.New("No known user-api hosts.")
+		return nil, errors.New("No known auth hosts")
 	}
 
 	host.Path = path.Join(host.Path, "v1", "users", userID, "restricted_tokens")
@@ -101,6 +102,9 @@ func (client *AuthClient) CreateRestrictedToken(userID string, expirationTime ti
 	}
 	defer res.Body.Close()
 
+	s, _ := json.MarshalIndent(res, "", "\t")
+	fmt.Println("res", string(s))
+
 	switch res.StatusCode {
 	case http.StatusCreated:
 		var td RestrictedToken
@@ -111,7 +115,7 @@ func (client *AuthClient) CreateRestrictedToken(userID string, expirationTime ti
 		return &td, nil
 	default:
 		return nil, &status.StatusError{
-			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL),
+			Status: status.NewStatusf(res.StatusCode, "Unexpected response code from service[%s]", req.URL),
 		}
 	}
 }

@@ -485,7 +485,6 @@ func (client *ShorelineClient) CreateCustodialUserForClinic(clinicId string, use
 	}
 }
 
-
 // DeleteUserSession deletes all active sessions for a given user
 func (client *ShorelineClient) DeleteUserSessions(userID, token string) error {
 	host := client.getHost()
@@ -501,6 +500,34 @@ func (client *ShorelineClient) DeleteUserSessions(userID, token string) error {
 	res, err := client.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "couldn't delete user sessions")
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	default:
+		return &status.StatusError{
+			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL),
+		}
+	}
+}
+
+// DeleteUserSession deletes all active sessions for a given user
+func (client *ShorelineClient) CreateRestrictedToken(userID, expirationTime string, paths []string, token string) error {
+	host := client.getHost()
+	if host == nil {
+		return errors.New("No known user-api hosts.")
+	}
+
+	host.Path = path.Join(host.Path, "v1", "users", userID, "restricted_tokens")
+
+	req, _ := http.NewRequest("POST", host.String(), nil)
+	req.Header.Add("x-tidepool-session-token", token)
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create restricted token")
 	}
 	defer res.Body.Close()
 

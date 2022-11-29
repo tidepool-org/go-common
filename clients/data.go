@@ -96,7 +96,7 @@ func (client *DataClient) ListSources(userID string) (DataSourceArray, error) {
 	if host == nil {
 		return nil, errors.New("No known data hosts")
 	}
-	host.Path = path.Join(host.Path, "/v1/users/", userID, "/data_sources")
+	host.Path = path.Join(host.Path, "v1", "users", userID, "data_sources")
 
 	req, _ := http.NewRequest("GET", host.String(), nil)
 	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())

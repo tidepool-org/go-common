@@ -36,7 +36,7 @@ type Client interface {
 	UpdateUser(userID string, userUpdate UserUpdate, token string) error
 	CreateCustodialUserForClinic(clinicId string, userData CustodialUserData, token string) (*UserData, error)
 	DeleteUserSessions(userID, token string) error
-	CreateRestrictedToken(userID, expirationTime string, paths []string, token string) (*RestrictedToken, error)
+	CreateRestrictedToken(userID, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
 }
 
 // ShorelineClient manages the local data for a client. A client is intended to be shared among multiple
@@ -525,7 +525,7 @@ func (client *ShorelineClient) DeleteUserSessions(userID, token string) error {
 }
 
 // DeleteUserSession deletes all active sessions for a given user
-func (client *ShorelineClient) CreateRestrictedToken(userID, expirationTime string, paths []string, token string) (*RestrictedToken, error) {
+func (client *ShorelineClient) CreateRestrictedToken(userID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error) {
 	host := client.getHost()
 	if host == nil {
 		return nil, errors.New("No known user-api hosts.")

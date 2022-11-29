@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -93,29 +94,40 @@ func (client *AuthClient) CreateRestrictedToken(userID string, expirationTime ti
 
 	host.Path = path.Join(host.Path, "v1", "users", userID, "restricted_tokens")
 
-	req, _ := http.NewRequest("POST", host.String(), nil)
-	req.Header.Add("x-tidepool-session-token", token)
-
-	res, err := client.httpClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "couldn't create restricted token")
+	type RestrictedTokenCreate struct {
+		Paths          *[]string  `json:"paths,omitempty"`
+		ExpirationTime *time.Time `json:"expirationTime,omitempty"`
 	}
-	defer res.Body.Close()
 
-	s, _ := json.MarshalIndent(res, "", "\t")
-	fmt.Println("res", string(s))
+	payload := RestrictedTokenCreate{
+		Paths:          &paths,
+		ExpirationTime: &expirationTime,
+	}
 
-	switch res.StatusCode {
-	case http.StatusCreated:
-		var td RestrictedToken
-		if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
-			log.Println("Error parsing JSON results", err)
-			return nil, nil
+	if jsonToken, err := json.Marshal(payload); err != nil {
+		return nil, fmt.Errorf("unable to marshal payload: %w", err)
+	} else {
+		req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(jsonToken))
+		req.Header.Add("x-tidepool-session-token", token)
+
+		res, err := client.httpClient.Do(req)
+		if err != nil {
+			return nil, errors.Wrap(err, "couldn't create restricted token")
 		}
-		return &td, nil
-	default:
-		return nil, &status.StatusError{
-			Status: status.NewStatusf(res.StatusCode, "Unexpected response code from service[%s]", req.URL),
+		defer res.Body.Close()
+
+		switch res.StatusCode {
+		case http.StatusCreated:
+			var td RestrictedToken
+			if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
+				log.Println("Error parsing JSON results", err)
+				return nil, nil
+			}
+			return &td, nil
+		default:
+			return nil, &status.StatusError{
+				Status: status.NewStatusf(res.StatusCode, "Unexpected response code from service[%s]", req.URL),
+			}
 		}
 	}
 }

@@ -15,7 +15,7 @@ import (
 
 type (
 	DataSourceArray []*DataSource
-	//Inteface so that we can mock dataClient for tests
+	//Interface so that we can mock dataClient for tests
 	Data interface {
 		//userID  -- the Tidepool-assigned userID
 		//

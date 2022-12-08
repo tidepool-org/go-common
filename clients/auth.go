@@ -21,7 +21,7 @@ type (
 		//userID  -- the Tidepool-assigned userID
 		//
 		// returns the Auth Sources for the user
-		ListUserRestrictedTokens(userID string, filter *RestrictedTokenFilter, pagination *Pagination, token string) (RestrictedTokens, error)
+		ListUserRestrictedTokens(userID string, token string) (RestrictedTokens, error)
 		CreateRestrictedToken(userID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
 		UpdateRestrictedToken(tokenId string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
 		DeleteRestrictedToken(tokenId string, token string) error
@@ -64,11 +64,6 @@ type RestrictedTokenUpdate struct {
 
 type RestrictedTokenFilter struct{}
 
-type Pagination struct {
-	Page int `json:"page,omitempty"`
-	Size int `json:"size,omitempty"`
-}
-
 func NewAuthClientBuilder() *authClientBuilder {
 	return &authClientBuilder{}
 }
@@ -104,6 +99,41 @@ func (b *authClientBuilder) Build() *AuthClient {
 		httpClient:    b.httpClient,
 		hostGetter:    b.hostGetter,
 		tokenProvider: b.tokenProvider,
+	}
+}
+
+// ListUserRestrictedTokens listsrestricted tokens for a given user
+func (client *AuthClient) ListUserRestrictedTokens(userID string, token string) (RestrictedTokens, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known auth hosts")
+	}
+	host.Path = path.Join(host.Path, "v1", "users", userID, "restricted_tokens")
+
+	req, _ := http.NewRequest("GET", host.String(), nil)
+	req.Header.Add("x-tidepool-session-token", token)
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == 200 {
+		retVal := RestrictedTokens{}
+		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
+			log.Println(err)
+			return nil, &status.StatusError{
+				Status: status.NewStatusf(res.StatusCode, "ListUserRestrictedTokens Unable to parse response[%s]", req.URL),
+			}
+		}
+		return retVal, nil
+	} else if res.StatusCode == 404 {
+		return nil, nil
+	} else {
+		return nil, &status.StatusError{
+			Status: status.NewStatusf(res.StatusCode, "Unexpected response code from service[%s]", req.URL),
+		}
 	}
 }
 
@@ -212,41 +242,6 @@ func (client *AuthClient) DeleteRestrictedToken(tokenID string, token string) er
 	default:
 		return &status.StatusError{
 			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL),
-		}
-	}
-}
-
-// ListUserRestrictedTokens listsrestricted tokens for a given user
-func (client *AuthClient) ListUserRestrictedTokens(userID string, filter *RestrictedTokenFilter, pagination *Pagination, token string) (RestrictedTokens, error) {
-	host := client.getHost()
-	if host == nil {
-		return nil, errors.New("No known auth hosts")
-	}
-	host.Path = path.Join(host.Path, "v1", "users", userID, "restricted_tokens")
-
-	req, _ := http.NewRequest("GET", host.String(), nil)
-	req.Header.Add("x-tidepool-session-token", token)
-
-	res, err := client.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode == 200 {
-		retVal := RestrictedTokens{}
-		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
-			log.Println(err)
-			return nil, &status.StatusError{
-				Status: status.NewStatusf(res.StatusCode, "ListUserRestrictedTokens Unable to parse response[%s]", req.URL),
-			}
-		}
-		return retVal, nil
-	} else if res.StatusCode == 404 {
-		return nil, nil
-	} else {
-		return nil, &status.StatusError{
-			Status: status.NewStatusf(res.StatusCode, "Unexpected response code from service[%s]", req.URL),
 		}
 	}
 }

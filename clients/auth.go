@@ -22,6 +22,7 @@ type (
 		//
 		// returns the Auth Sources for the user
 		CreateRestrictedToken(userID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
+		UpdateRestrictedToken(userID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
 	}
 
 	AuthClient struct {
@@ -39,12 +40,22 @@ type (
 
 // RestrictedToken is the data structure returned from a successful create restricted token query.
 type RestrictedToken struct {
-	ID             string     `json:"id" bson:"id"`
-	UserID         string     `json:"userId" bson:"userId"`
-	Paths          *[]string  `json:"paths,omitempty" bson:"paths,omitempty"`
-	ExpirationTime time.Time  `json:"expirationTime" bson:"expirationTime"`
-	CreatedTime    time.Time  `json:"createdTime" bson:"createdTime"`
-	ModifiedTime   *time.Time `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ID             string     `json:"id"`
+	UserID         string     `json:"userId"`
+	Paths          *[]string  `json:"paths,omitempty"`
+	ExpirationTime time.Time  `json:"expirationTime"`
+	CreatedTime    time.Time  `json:"createdTime"`
+	ModifiedTime   *time.Time `json:"modifiedTime,omitempty"`
+}
+
+type RestrictedTokenCreate struct {
+	Paths          *[]string  `json:"paths,omitempty"`
+	ExpirationTime *time.Time `json:"expirationTime"`
+}
+
+type RestrictedTokenUpdate struct {
+	Paths          *[]string  `json:"paths,omitempty"`
+	ExpirationTime *time.Time `json:"expirationTime"`
 }
 
 func NewAuthClientBuilder() *authClientBuilder {
@@ -94,11 +105,6 @@ func (client *AuthClient) CreateRestrictedToken(userID string, expirationTime ti
 
 	host.Path = path.Join(host.Path, "v1", "users", userID, "restricted_tokens")
 
-	type RestrictedTokenCreate struct {
-		Paths          *[]string  `json:"paths,omitempty"`
-		ExpirationTime *time.Time `json:"expirationTime,omitempty"`
-	}
-
 	payload := RestrictedTokenCreate{
 		Paths:          &paths,
 		ExpirationTime: &expirationTime,
@@ -113,6 +119,48 @@ func (client *AuthClient) CreateRestrictedToken(userID string, expirationTime ti
 		res, err := client.httpClient.Do(req)
 		if err != nil {
 			return nil, errors.Wrap(err, "couldn't create restricted token")
+		}
+		defer res.Body.Close()
+
+		switch res.StatusCode {
+		case http.StatusCreated:
+			var td RestrictedToken
+			if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
+				log.Println("Error parsing JSON results", err)
+				return nil, nil
+			}
+			return &td, nil
+		default:
+			return nil, &status.StatusError{
+				Status: status.NewStatusf(res.StatusCode, "Unexpected response code from service[%s]", req.URL),
+			}
+		}
+	}
+}
+
+// CreateRestrictedToken creates a restricted token for a given user
+func (client *AuthClient) UpdateRestrictedToken(tokenID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known auth hosts")
+	}
+
+	host.Path = path.Join(host.Path, "v1", "restricted_tokens", tokenID)
+
+	payload := RestrictedTokenUpdate{
+		Paths:          &paths,
+		ExpirationTime: &expirationTime,
+	}
+
+	if jsonToken, err := json.Marshal(payload); err != nil {
+		return nil, fmt.Errorf("unable to marshal payload: %w", err)
+	} else {
+		req, _ := http.NewRequest("PUT", host.String(), bytes.NewBuffer(jsonToken))
+		req.Header.Add("x-tidepool-session-token", token)
+
+		res, err := client.httpClient.Do(req)
+		if err != nil {
+			return nil, errors.Wrap(err, "couldn't update restricted token")
 		}
 		defer res.Body.Close()
 

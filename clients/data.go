@@ -37,20 +37,20 @@ type (
 )
 
 type DataSource struct {
-	ID                *string              `json:"id,omitempty" bson:"id,omitempty"`
-	UserID            *string              `json:"userId,omitempty" bson:"userId,omitempty"`
-	ProviderType      *string              `json:"providerType,omitempty" bson:"providerType,omitempty"`
-	ProviderName      *string              `json:"providerName,omitempty" bson:"providerName,omitempty"`
-	ProviderSessionID *string              `json:"providerSessionId,omitempty" bson:"providerSessionId,omitempty"`
-	State             *string              `json:"state,omitempty" bson:"state,omitempty"`
-	Error             *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
-	DataSetIDs        *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
-	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
-	LatestDataTime    *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
-	LastImportTime    *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
-	CreatedTime       *time.Time           `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	ModifiedTime      *time.Time           `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	Revision          *int                 `json:"revision,omitempty" bson:"revision,omitempty"`
+	ID                *string              `json:"id,omitempty"`
+	UserID            *string              `json:"userId,omitempty"`
+	ProviderType      *string              `json:"providerType,omitempty"`
+	ProviderName      *string              `json:"providerName,omitempty"`
+	ProviderSessionID *string              `json:"providerSessionId,omitempty"`
+	State             *string              `json:"state,omitempty"`
+	Error             *errors.Serializable `json:"error,omitempty"`
+	DataSetIDs        *[]string            `json:"dataSetIds,omitempty"`
+	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty"`
+	LatestDataTime    *time.Time           `json:"latestDataTime,omitempty"`
+	LastImportTime    *time.Time           `json:"lastImportTime,omitempty"`
+	CreatedTime       *time.Time           `json:"createdTime,omitempty"`
+	ModifiedTime      *time.Time           `json:"modifiedTime,omitempty"`
+	Revision          *int                 `json:"revision,omitempty"`
 }
 
 func NewDataClientBuilder() *dataClientBuilder {

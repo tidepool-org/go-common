@@ -21,9 +21,10 @@ type (
 		//userID  -- the Tidepool-assigned userID
 		//
 		// returns the Auth Sources for the user
-		ListUserRestrictedTokens(userID string, filter *RestrictedTokenFilter, pagination *Pagination) (RestrictedTokens, error)
+		ListUserRestrictedTokens(userID string, filter *RestrictedTokenFilter, pagination *Pagination, token string) (RestrictedTokens, error)
 		CreateRestrictedToken(userID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
-		UpdateRestrictedToken(userID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
+		UpdateRestrictedToken(tokenId string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error)
+		DeleteRestrictedToken(tokenId string, token string) error
 	}
 
 	AuthClient struct {
@@ -147,7 +148,7 @@ func (client *AuthClient) CreateRestrictedToken(userID string, expirationTime ti
 	}
 }
 
-// CreateRestrictedToken creates a restricted token for a given user
+// UpdateRestrictedToken updates a restricted token
 func (client *AuthClient) UpdateRestrictedToken(tokenID string, expirationTime time.Time, paths []string, token string) (*RestrictedToken, error) {
 	host := client.getHost()
 	if host == nil {
@@ -188,7 +189,34 @@ func (client *AuthClient) UpdateRestrictedToken(tokenID string, expirationTime t
 	}
 }
 
-// CreateRestrictedToken creates a restricted token for a given user
+// DeleteRestrictedToken deletes a restricted token
+func (client *AuthClient) DeleteRestrictedToken(tokenID string, token string) error {
+	host := client.getHost()
+	if host == nil {
+		return errors.New("No known auth hosts")
+	}
+	host.Path = path.Join(host.Path, "v1", "restricted_tokens", tokenID)
+
+	req, _ := http.NewRequest("DELETE", host.String(), nil)
+	req.Header.Add("x-tidepool-session-token", token)
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "couldn't delete restricted token")
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	default:
+		return &status.StatusError{
+			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL),
+		}
+	}
+}
+
+// ListUserRestrictedTokens listsrestricted tokens for a given user
 func (client *AuthClient) ListUserRestrictedTokens(userID string, filter *RestrictedTokenFilter, pagination *Pagination, token string) (RestrictedTokens, error) {
 	host := client.getHost()
 	if host == nil {

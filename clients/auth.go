@@ -166,8 +166,7 @@ func (client *AuthClient) CreateRestrictedToken(userID string, expirationTime ti
 		case http.StatusCreated:
 			var td RestrictedToken
 			if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
-				log.Println("Error parsing JSON results", err)
-				return nil, nil
+				return nil, errors.Wrap(err, "Error parsing JSON results")
 			}
 			return &td, nil
 		default:
@@ -207,8 +206,7 @@ func (client *AuthClient) UpdateRestrictedToken(tokenID string, expirationTime t
 		case http.StatusOK:
 			var td RestrictedToken
 			if err = json.NewDecoder(res.Body).Decode(&td); err != nil {
-				log.Println("Error parsing JSON results", err)
-				return nil, nil
+				return nil, errors.Wrap(err, "Error parsing JSON results")
 			}
 			return &td, nil
 		default:

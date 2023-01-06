@@ -37,6 +37,7 @@ type (
 )
 
 type DataSource struct {
+	ObjectID          *string              `json:"_id,omitempty"`
 	ID                *string              `json:"id,omitempty"`
 	UserID            *string              `json:"userId,omitempty"`
 	ProviderType      *string              `json:"providerType,omitempty"`

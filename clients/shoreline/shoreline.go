@@ -485,7 +485,6 @@ func (client *ShorelineClient) CreateCustodialUserForClinic(clinicId string, use
 	}
 }
 
-
 // DeleteUserSession deletes all active sessions for a given user
 func (client *ShorelineClient) DeleteUserSessions(userID, token string) error {
 	host := client.getHost()

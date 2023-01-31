@@ -18,6 +18,13 @@ const (
 	AverageGlucoseUnitsMmoll AverageGlucoseUnits = "mmol/l"
 )
 
+// Defines values for SummaryType.
+const (
+	SummaryTypeBgm SummaryType = "bgm"
+
+	SummaryTypeCgm SummaryType = "cgm"
+)
+
 // Blood glucose value, in `mmol/L`
 type AverageGlucose struct {
 	Units AverageGlucoseUnits `json:"units"`
@@ -28,6 +35,30 @@ type AverageGlucose struct {
 
 // AverageGlucoseUnits defines model for AverageGlucose.Units.
 type AverageGlucoseUnits string
+
+// Series of counters which represent one hour of a users data
+type BGMBucketData struct {
+	Date           *time.Time `json:"date,omitempty"`
+	LastRecordTime *time.Time `json:"lastRecordTime,omitempty"`
+
+	// Counter of records in high glucose range
+	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
+
+	// Counter of records in low glucose range
+	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
+
+	// Counter of records in target glucose range
+	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
+
+	// Counter of records in very high glucose range
+	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
+
+	// Counter of records in very low glucose range
+	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
+
+	// Total value of all glucose records
+	TotalGlucose *float64 `json:"totalGlucose,omitempty"`
+}
 
 // Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
 type BGMPeriod struct {
@@ -86,56 +117,65 @@ type BGMPeriods struct {
 	N7d *BGMPeriod `json:"7d,omitempty"`
 }
 
-// Series of counters which represent one hour of a users data
-type BGMStats struct {
-	Date           *time.Time `json:"date,omitempty"`
-	LastRecordTime *time.Time `json:"lastRecordTime,omitempty"`
-
-	// Counter of records in high glucose range
-	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
-
-	// Counter of records in low glucose range
-	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
-
-	// Counter of records in target glucose range
-	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
-
-	// Counter of records in very high glucose range
-	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
-
-	// Counter of records in very low glucose range
-	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
-
-	// Total value of all glucose records
-	TotalGlucose *float64 `json:"totalGlucose,omitempty"`
-}
-
 // A summary of a users recent BGM glucose values
-type BGMSummary struct {
-	// Date of the first included value
-	FirstData         *time.Time `json:"firstData,omitempty"`
-	HasLastUploadDate *bool      `json:"hasLastUploadDate,omitempty"`
-
+type BGMStats struct {
 	// Rotating list containing the stats for each currently tracked hour in order
-	HourlyStats *[]BGMStats `json:"hourlyStats,omitempty"`
-
-	// Date of the last calculated value
-	LastData *time.Time `json:"lastData,omitempty"`
-
-	// Date of the last calculation
-	LastUpdatedDate *time.Time `json:"lastUpdatedDate,omitempty"`
-
-	// Created date of the last calculated value
-	LastUploadDate *time.Time `json:"lastUploadDate,omitempty"`
-
-	// Date of the first user upload after lastData, removed when calculated
-	OutdatedSince *time.Time `json:"outdatedSince,omitempty"`
+	Buckets *[]Bucket `json:"buckets,omitempty"`
 
 	// A map to each supported BGM summary period
 	Periods *BGMPeriods `json:"periods,omitempty"`
 
 	// Total hours represented in the hourly stats
 	TotalHours *int `json:"totalHours,omitempty"`
+}
+
+// bucket containing an hour of bgm or cgm aggregations
+type Bucket struct {
+	Data           *interface{} `json:"data,omitempty"`
+	Date           *time.Time   `json:"date,omitempty"`
+	LastRecordTime *time.Time   `json:"lastRecordTime,omitempty"`
+}
+
+// Series of counters which represent one hour of a users data
+type CGMBucketData struct {
+	// Counter of minutes using a cgm
+	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`
+
+	// Counter of records wearing a cgm
+	TimeCGMUseRecords *int `json:"timeCGMUseRecords,omitempty"`
+
+	// Counter of minutes spent in high glucose range
+	TimeInHighMinutes *int `json:"timeInHighMinutes,omitempty"`
+
+	// Counter of records in high glucose range
+	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
+
+	// Counter of minutes spent in low glucose range
+	TimeInLowMinutes *int `json:"timeInLowMinutes,omitempty"`
+
+	// Counter of records in low glucose range
+	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
+
+	// Counter of minutes spent in target glucose range
+	TimeInTargetMinutes *int `json:"timeInTargetMinutes,omitempty"`
+
+	// Counter of records in target glucose range
+	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
+
+	// Counter of minutes spent in very high glucose range
+	TimeInVeryHighMinutes *int `json:"timeInVeryHighMinutes,omitempty"`
+
+	// Counter of records in very high glucose range
+	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
+
+	// Counter of minutes spent in very low glucose range
+	TimeInVeryLowMinutes *int `json:"timeInVeryLowMinutes,omitempty"`
+
+	// Counter of records in very low glucose range
+	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
+
+	// Total value of all glucose records
+	TotalGlucose *float64 `json:"totalGlucose,omitempty"`
 }
 
 // Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
@@ -224,71 +264,10 @@ type CGMPeriods struct {
 	N7d *CGMPeriod `json:"7d,omitempty"`
 }
 
-// Series of counters which represent one hour of a users data
-type CGMStats struct {
-	Date           *time.Time `json:"date,omitempty"`
-	LastRecordTime *time.Time `json:"lastRecordTime,omitempty"`
-
-	// Counter of minutes using a cgm
-	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`
-
-	// Counter of records wearing a cgm
-	TimeCGMUseRecords *int `json:"timeCGMUseRecords,omitempty"`
-
-	// Counter of minutes spent in high glucose range
-	TimeInHighMinutes *int `json:"timeInHighMinutes,omitempty"`
-
-	// Counter of records in high glucose range
-	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
-
-	// Counter of minutes spent in low glucose range
-	TimeInLowMinutes *int `json:"timeInLowMinutes,omitempty"`
-
-	// Counter of records in low glucose range
-	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
-
-	// Counter of minutes spent in target glucose range
-	TimeInTargetMinutes *int `json:"timeInTargetMinutes,omitempty"`
-
-	// Counter of records in target glucose range
-	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
-
-	// Counter of minutes spent in very high glucose range
-	TimeInVeryHighMinutes *int `json:"timeInVeryHighMinutes,omitempty"`
-
-	// Counter of records in very high glucose range
-	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
-
-	// Counter of minutes spent in very low glucose range
-	TimeInVeryLowMinutes *int `json:"timeInVeryLowMinutes,omitempty"`
-
-	// Counter of records in very low glucose range
-	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
-
-	// Total value of all glucose records
-	TotalGlucose *float64 `json:"totalGlucose,omitempty"`
-}
-
 // A summary of a users recent CGM glucose values
-type CGMSummary struct {
-	// Date of the first included value
-	FirstData         *time.Time `json:"firstData,omitempty"`
-	HasLastUploadDate *bool      `json:"hasLastUploadDate,omitempty"`
-
+type CGMStats struct {
 	// Rotating list containing the stats for each currently tracked hour in order
-	HourlyStats *[]CGMStats `json:"hourlyStats,omitempty"`
-
-	// Date of the last calculated value
-	LastData *time.Time `json:"lastData,omitempty"`
-
-	// Date of the last calculation
-	LastUpdatedDate *time.Time `json:"lastUpdatedDate,omitempty"`
-
-	// Created date of the last calculated value
-	LastUploadDate *time.Time `json:"lastUploadDate,omitempty"`
-
-	// Date of the first user upload after lastData, removed when calculated
-	OutdatedSince *time.Time `json:"outdatedSince,omitempty"`
+	Buckets *[]Bucket `json:"buckets,omitempty"`
 
 	// A map to each supported CGM summary period
 	Periods *CGMPeriods `json:"periods,omitempty"`
@@ -315,20 +294,39 @@ type Config struct {
 	VeryLowGlucoseThreshold *float64 `json:"veryLowGlucoseThreshold,omitempty"`
 }
 
-// A summary of a users recent glucose values
+// dates tracked for summary calculation
+type Dates struct {
+	// Date of the first included value
+	FirstData         *time.Time `json:"firstData,omitempty"`
+	HasLastUploadDate *bool      `json:"hasLastUploadDate,omitempty"`
+
+	// Date of the last calculated value
+	LastData *time.Time `json:"lastData,omitempty"`
+
+	// Date of the last calculation
+	LastUpdatedDate *time.Time `json:"lastUpdatedDate,omitempty"`
+
+	// Created date of the last calculated value
+	LastUploadDate *time.Time `json:"lastUploadDate,omitempty"`
+
+	// Date of the first user upload after lastData, removed when calculated
+	OutdatedSince *time.Time `json:"outdatedSince,omitempty"`
+}
+
+// A summary of a users recent data
 type Summary struct {
-	// A summary of a users recent BGM glucose values
-	BgmSummary *BGMSummary `json:"bgmSummary,omitempty"`
-
-	// A summary of a users recent CGM glucose values
-	CgmSummary *CGMSummary `json:"cgmSummary,omitempty"`
-
 	// Summary schema version and calculation configuration
 	Config *Config `json:"config,omitempty"`
 
-	// String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
-	UserId *TidepoolUserId `json:"userId,omitempty"`
+	// dates tracked for summary calculation
+	Dates  *Dates       `json:"dates,omitempty"`
+	Stats  *interface{} `json:"stats,omitempty"`
+	Type   *SummaryType `json:"type,omitempty"`
+	UserId *string      `json:"userId,omitempty"`
 }
+
+// SummaryType defines model for Summary.Type.
+type SummaryType string
 
 // String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
 type TidepoolUserId string

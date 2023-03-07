@@ -18,13 +18,6 @@ const (
 	AverageGlucoseUnitsMmoll AverageGlucoseUnits = "mmol/l"
 )
 
-// Defines values for SummaryType.
-const (
-	SummaryTypeBgm SummaryType = "bgm"
-
-	SummaryTypeCgm SummaryType = "cgm"
-)
-
 // Blood glucose value, in `mmol/L`
 type AverageGlucose struct {
 	Units AverageGlucoseUnits `json:"units"`
@@ -319,13 +312,17 @@ type Summary struct {
 	Config *Config `json:"config,omitempty"`
 
 	// dates tracked for summary calculation
-	Dates  *Dates       `json:"dates,omitempty"`
-	Stats  *interface{} `json:"stats,omitempty"`
-	Type   *SummaryType `json:"type,omitempty"`
-	UserId *string      `json:"userId,omitempty"`
+	Dates *Dates       `json:"dates,omitempty"`
+	Stats *interface{} `json:"stats,omitempty"`
+
+	// Field which contains a summary type string.
+	Type *SummaryType `json:"type,omitempty"`
+
+	// String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
+	UserId *TidepoolUserId `json:"userId,omitempty"`
 }
 
-// SummaryType defines model for Summary.Type.
+// Field which contains a summary type string.
 type SummaryType string
 
 // String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))

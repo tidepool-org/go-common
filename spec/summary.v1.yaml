@@ -28,9 +28,10 @@ servers:
   - url: 'https://api.tidepool.org'
     description: production
 paths:
-  '/v1/summaries/{userId}':
+  '/v1/summaries/{userId}/{summaryType}':
     parameters:
       - $ref: '#/components/parameters/userId'
+      - $ref: '#/components/parameters/summaryType'
     get:
       summary: Get User Summary
       responses:
@@ -47,7 +48,7 @@ paths:
         '500':
           description: Internal Server Error
       operationId: GetSummary
-      description: Retrieve a summary by id
+      description: Retrieve a summary by user id
       x-internal: true
       tags:
         - summary
@@ -59,6 +60,14 @@ components:
       pattern: '^([0-9a-f]{10}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
       description: 'String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))'
       readOnly: true
+      x-go-type: string
+    SummaryType:
+      type: string
+      title: Summary Type
+      enum:
+        - cgm
+        - bgm
+      description: Field which contains a summary type string.
       x-go-type: string
     AverageGlucose:
       title: Blood Glucose (mmol/L)
@@ -518,12 +527,9 @@ components:
       description: A summary of a users recent data
       properties:
         type:
-          type: string
-          enum:
-            - cgm
-            - bgm
+          $ref: '#/components/schemas/SummaryType'
         userId:
-          type: string
+          $ref: '#/components/schemas/TidepoolUserId'
         config:
           $ref: '#/components/schemas/Config'
         dates:
@@ -550,6 +556,12 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/TidepoolUserId'
+    summaryType:
+      name: summaryType
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/SummaryType'
 tags:
   - name: summary
     description: Tidepool Summary Data

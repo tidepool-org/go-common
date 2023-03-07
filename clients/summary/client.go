@@ -89,11 +89,11 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 	// GetSummary request
-	GetSummary(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetSummary(ctx context.Context, userId UserId, summaryType SummaryType, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-func (c *Client) GetSummary(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetSummaryRequest(c.Server, userId)
+func (c *Client) GetSummary(ctx context.Context, userId UserId, summaryType SummaryType, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSummaryRequest(c.Server, userId, summaryType)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (c *Client) GetSummary(ctx context.Context, userId UserId, reqEditors ...Re
 }
 
 // NewGetSummaryRequest generates requests for GetSummary
-func NewGetSummaryRequest(server string, userId UserId) (*http.Request, error) {
+func NewGetSummaryRequest(server string, userId UserId, summaryType SummaryType) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -115,12 +115,19 @@ func NewGetSummaryRequest(server string, userId UserId) (*http.Request, error) {
 		return nil, err
 	}
 
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "summaryType", runtime.ParamLocationPath, summaryType)
+	if err != nil {
+		return nil, err
+	}
+
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/v1/summaries/%s", pathParam0)
+	operationPath := fmt.Sprintf("/v1/summaries/%s/%s", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -182,7 +189,7 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 	// GetSummary request
-	GetSummaryWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*GetSummaryResponse, error)
+	GetSummaryWithResponse(ctx context.Context, userId UserId, summaryType SummaryType, reqEditors ...RequestEditorFn) (*GetSummaryResponse, error)
 }
 
 type GetSummaryResponse struct {
@@ -208,8 +215,8 @@ func (r GetSummaryResponse) StatusCode() int {
 }
 
 // GetSummaryWithResponse request returning *GetSummaryResponse
-func (c *ClientWithResponses) GetSummaryWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*GetSummaryResponse, error) {
-	rsp, err := c.GetSummary(ctx, userId, reqEditors...)
+func (c *ClientWithResponses) GetSummaryWithResponse(ctx context.Context, userId UserId, summaryType SummaryType, reqEditors ...RequestEditorFn) (*GetSummaryResponse, error) {
+	rsp, err := c.GetSummary(ctx, userId, summaryType, reqEditors...)
 	if err != nil {
 		return nil, err
 	}

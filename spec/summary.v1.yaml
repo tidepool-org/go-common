@@ -208,6 +208,16 @@ components:
           type: number
           example: 10
           x-go-type: int
+        totalRecords:
+          description: Counter of records
+          type: number
+          example: 10
+          x-go-type: int
+        averageDailyRecords:
+          description: Average daily readings
+          type: number
+          example: 3.5
+          x-go-type: float64
     BGMPeriods:
       type: object
       title: bgmperiods.v1
@@ -425,6 +435,16 @@ components:
           type: number
           example: 10
           x-go-type: int
+        totalRecords:
+          description: Counter of records
+          type: number
+          example: 10
+          x-go-type: int
+        averageDailyRecords:
+          description: Average daily readings
+          type: number
+          example: 3.5
+          x-go-type: float64
     CGMPeriods:
       type: object
       title: cgmperiods.v1

@@ -60,12 +60,19 @@ type BGMPeriod struct {
 
 	// Blood glucose value, in `mmol/L`
 	AverageGlucose           *AverageGlucose `json:"averageGlucose,omitempty"`
+	HasAverageDailyRecords   *bool           `json:"hasAverageDailyRecords,omitempty"`
 	HasAverageGlucose        *bool           `json:"hasAverageGlucose,omitempty"`
 	HasTimeInHighPercent     *bool           `json:"hasTimeInHighPercent,omitempty"`
+	HasTimeInHighRecords     *bool           `json:"hasTimeInHighRecords,omitempty"`
 	HasTimeInLowPercent      *bool           `json:"hasTimeInLowPercent,omitempty"`
+	HasTimeInLowRecords      *bool           `json:"hasTimeInLowRecords,omitempty"`
 	HasTimeInTargetPercent   *bool           `json:"hasTimeInTargetPercent,omitempty"`
+	HasTimeInTargetRecords   *bool           `json:"hasTimeInTargetRecords,omitempty"`
 	HasTimeInVeryHighPercent *bool           `json:"hasTimeInVeryHighPercent,omitempty"`
+	HasTimeInVeryHighRecords *bool           `json:"hasTimeInVeryHighRecords,omitempty"`
 	HasTimeInVeryLowPercent  *bool           `json:"hasTimeInVeryLowPercent,omitempty"`
+	HasTimeInVeryLowRecords  *bool           `json:"hasTimeInVeryLowRecords,omitempty"`
+	HasTotalRecords          *bool           `json:"hasTotalRecords,omitempty"`
 
 	// Percentage of time spent in high glucose range
 	TimeInHighPercent *float64 `json:"timeInHighPercent,omitempty"`
@@ -187,14 +194,28 @@ type CGMPeriod struct {
 
 	// A derived value which emulates A1C
 	GlucoseManagementIndicator    *float64 `json:"glucoseManagementIndicator,omitempty"`
+	HasAverageDailyRecords        *bool    `json:"hasAverageDailyRecords,omitempty"`
 	HasAverageGlucose             *bool    `json:"hasAverageGlucose,omitempty"`
 	HasGlucoseManagementIndicator *bool    `json:"hasGlucoseManagementIndicator,omitempty"`
+	HasTimeCGMUseMinutes          *bool    `json:"hasTimeCGMUseMinutes,omitempty"`
 	HasTimeCGMUsePercent          *bool    `json:"hasTimeCGMUsePercent,omitempty"`
+	HasTimeCGMUseRecords          *bool    `json:"hasTimeCGMUseRecords,omitempty"`
+	HasTimeInHighMinutes          *bool    `json:"hasTimeInHighMinutes,omitempty"`
 	HasTimeInHighPercent          *bool    `json:"hasTimeInHighPercent,omitempty"`
+	HasTimeInHighRecords          *bool    `json:"hasTimeInHighRecords,omitempty"`
+	HasTimeInLowMinutes           *bool    `json:"hasTimeInLowMinutes,omitempty"`
 	HasTimeInLowPercent           *bool    `json:"hasTimeInLowPercent,omitempty"`
+	HasTimeInLowRecords           *bool    `json:"hasTimeInLowRecords,omitempty"`
+	HasTimeInTargetMinutes        *bool    `json:"hasTimeInTargetMinutes,omitempty"`
 	HasTimeInTargetPercent        *bool    `json:"hasTimeInTargetPercent,omitempty"`
+	HasTimeInTargetRecords        *bool    `json:"hasTimeInTargetRecords,omitempty"`
+	HasTimeInVeryHighMinutes      *bool    `json:"hasTimeInVeryHighMinutes,omitempty"`
 	HasTimeInVeryHighPercent      *bool    `json:"hasTimeInVeryHighPercent,omitempty"`
+	HasTimeInVeryHighRecords      *bool    `json:"hasTimeInVeryHighRecords,omitempty"`
+	HasTimeInVeryLowMinutes       *bool    `json:"hasTimeInVeryLowMinutes,omitempty"`
 	HasTimeInVeryLowPercent       *bool    `json:"hasTimeInVeryLowPercent,omitempty"`
+	HasTimeInVeryLowRecords       *bool    `json:"hasTimeInVeryLowRecords,omitempty"`
+	HasTotalRecords               *bool    `json:"hasTotalRecords,omitempty"`
 
 	// Counter of minutes spent wearing a cgm
 	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`

@@ -58,13 +58,14 @@ type ShorelineClientConfig struct {
 
 // UserData is the data structure returned from a successful Login query.
 type UserData struct {
-	UserID         string   `json:"userid,omitempty"`         // the tidepool-assigned user ID
-	Username       string   `json:"username,omitempty"`       // the user-assigned name for the login (usually an email address)
-	Emails         []string `json:"emails,omitempty"`         // the array of email addresses associated with this account
-	PasswordExists bool     `json:"passwordExists,omitempty"` // Does a password exist for the user?
-	Roles          []string `json:"roles,omitempty"`          // User roles
-	EmailVerified  bool     `json:"emailVerified,omitempty"`  // the user has verified the email used as part of signup
-	TermsAccepted  string   `json:"termsAccepted,omitempty"`  // When were the terms accepted
+	UserID           string   `json:"userid,omitempty"`           // the tidepool-assigned user ID
+	Username         string   `json:"username,omitempty"`         // the user-assigned name for the login (usually an email address)
+	Emails           []string `json:"emails,omitempty"`           // the array of email addresses associated with this account
+	PasswordExists   bool     `json:"passwordExists,omitempty"`   // Does a password exist for the user?
+	Roles            []string `json:"roles,omitempty"`            // User roles
+	EmailVerified    bool     `json:"emailVerified,omitempty"`    // the user has verified the email used as part of signup
+	TermsAccepted    string   `json:"termsAccepted,omitempty"`    // When were the terms accepted
+	IdentityProvider string   `json:"identityProvider,omitempty"` // The identity provider used for authenticating the current user
 }
 
 // UserUpdate is the data structure for updating of a users details

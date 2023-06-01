@@ -83,8 +83,9 @@ type CustodialUserData struct {
 
 // TokenData is the data structure returned from a successful CheckToken query.
 type TokenData struct {
-	UserID   string // the UserID stored in the token
-	IsServer bool   // true or false depending on whether the token was a servertoken
+	UserID           string // the UserID stored in the token
+	IsServer         bool   // true or false depending on whether the token was a servertoken
+	IdentityProvider string `json:"identityProvider,omitempty"` // The identity provider used for authenticating the current user
 }
 
 type ShorelineClientBuilder struct {

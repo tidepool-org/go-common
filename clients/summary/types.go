@@ -60,54 +60,93 @@ type BGMPeriod struct {
 	// AverageDailyRecords Average daily readings
 	AverageDailyRecords *float64 `json:"averageDailyRecords,omitempty"`
 
+	// AverageDailyRecordsDelta Difference between the averageDailyRecords in this period and version in the opposite offset
+	AverageDailyRecordsDelta *float64 `json:"averageDailyRecordsDelta,omitempty"`
+
 	// AverageGlucose Blood glucose value, in `mmol/L`
-	AverageGlucose           *AverageGlucose `json:"averageGlucose,omitempty"`
-	HasAverageDailyRecords   *bool           `json:"hasAverageDailyRecords,omitempty"`
-	HasAverageGlucose        *bool           `json:"hasAverageGlucose,omitempty"`
-	HasTimeInHighPercent     *bool           `json:"hasTimeInHighPercent,omitempty"`
-	HasTimeInHighRecords     *bool           `json:"hasTimeInHighRecords,omitempty"`
-	HasTimeInLowPercent      *bool           `json:"hasTimeInLowPercent,omitempty"`
-	HasTimeInLowRecords      *bool           `json:"hasTimeInLowRecords,omitempty"`
-	HasTimeInTargetPercent   *bool           `json:"hasTimeInTargetPercent,omitempty"`
-	HasTimeInTargetRecords   *bool           `json:"hasTimeInTargetRecords,omitempty"`
-	HasTimeInVeryHighPercent *bool           `json:"hasTimeInVeryHighPercent,omitempty"`
-	HasTimeInVeryHighRecords *bool           `json:"hasTimeInVeryHighRecords,omitempty"`
-	HasTimeInVeryLowPercent  *bool           `json:"hasTimeInVeryLowPercent,omitempty"`
-	HasTimeInVeryLowRecords  *bool           `json:"hasTimeInVeryLowRecords,omitempty"`
-	HasTotalRecords          *bool           `json:"hasTotalRecords,omitempty"`
+	AverageGlucose *AverageGlucose `json:"averageGlucose,omitempty"`
+
+	// AverageGlucoseDelta Difference between the averageGlucose in this period and the other offset version
+	AverageGlucoseDelta      *float64 `json:"averageGlucoseDelta,omitempty"`
+	HasAverageDailyRecords   *bool    `json:"hasAverageDailyRecords,omitempty"`
+	HasAverageGlucose        *bool    `json:"hasAverageGlucose,omitempty"`
+	HasTimeInHighPercent     *bool    `json:"hasTimeInHighPercent,omitempty"`
+	HasTimeInHighRecords     *bool    `json:"hasTimeInHighRecords,omitempty"`
+	HasTimeInLowPercent      *bool    `json:"hasTimeInLowPercent,omitempty"`
+	HasTimeInLowRecords      *bool    `json:"hasTimeInLowRecords,omitempty"`
+	HasTimeInTargetPercent   *bool    `json:"hasTimeInTargetPercent,omitempty"`
+	HasTimeInTargetRecords   *bool    `json:"hasTimeInTargetRecords,omitempty"`
+	HasTimeInVeryHighPercent *bool    `json:"hasTimeInVeryHighPercent,omitempty"`
+	HasTimeInVeryHighRecords *bool    `json:"hasTimeInVeryHighRecords,omitempty"`
+	HasTimeInVeryLowPercent  *bool    `json:"hasTimeInVeryLowPercent,omitempty"`
+	HasTimeInVeryLowRecords  *bool    `json:"hasTimeInVeryLowRecords,omitempty"`
+	HasTotalRecords          *bool    `json:"hasTotalRecords,omitempty"`
 
 	// TimeInHighPercent Percentage of time spent in high glucose range
 	TimeInHighPercent *float64 `json:"timeInHighPercent,omitempty"`
 
+	// TimeInHighPercentDelta Difference between the timeInHighPercent in this period and version in the opposite offset
+	TimeInHighPercentDelta *float64 `json:"timeInHighPercentDelta,omitempty"`
+
 	// TimeInHighRecords Counter of records in high glucose range
 	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
+
+	// TimeInHighRecordsDelta Difference between the timeInHighRecords in this period and version in the opposite offset
+	TimeInHighRecordsDelta *int `json:"timeInHighRecordsDelta,omitempty"`
 
 	// TimeInLowPercent Percentage of time spent in low glucose range
 	TimeInLowPercent *float64 `json:"timeInLowPercent,omitempty"`
 
+	// TimeInLowPercentDelta Difference between the timeInLowPercent in this period and version in the opposite offset
+	TimeInLowPercentDelta *float64 `json:"timeInLowPercentDelta,omitempty"`
+
 	// TimeInLowRecords Counter of records in low glucose range
 	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
+
+	// TimeInLowRecordsDelta Difference between the timeInLowRecords in this period and version in the opposite offset
+	TimeInLowRecordsDelta *int `json:"timeInLowRecordsDelta,omitempty"`
 
 	// TimeInTargetPercent Percentage of time spent in target glucose range
 	TimeInTargetPercent *float64 `json:"timeInTargetPercent,omitempty"`
 
+	// TimeInTargetPercentDelta Difference between the timeInTargetPercent in this period and version in the opposite offset
+	TimeInTargetPercentDelta *float64 `json:"timeInTargetPercentDelta,omitempty"`
+
 	// TimeInTargetRecords Counter of records in target glucose range
 	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
+
+	// TimeInTargetRecordsDelta Difference between the timeInTargetRecords in this period and version in the opposite offset
+	TimeInTargetRecordsDelta *int `json:"timeInTargetRecordsDelta,omitempty"`
 
 	// TimeInVeryHighPercent Percentage of time spent in very high glucose range
 	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent,omitempty"`
 
+	// TimeInVeryHighPercentDelta Difference between the timeInVeryHighPercent in this period and version in the opposite offset
+	TimeInVeryHighPercentDelta *float64 `json:"timeInVeryHighPercentDelta,omitempty"`
+
 	// TimeInVeryHighRecords Counter of records in very high glucose range
 	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
+
+	// TimeInVeryHighRecordsDelta Difference between the timeInVeryHighRecords in this period and version in the opposite offset
+	TimeInVeryHighRecordsDelta *int `json:"timeInVeryHighRecordsDelta,omitempty"`
 
 	// TimeInVeryLowPercent Percentage of time spent in very low glucose range
 	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent,omitempty"`
 
+	// TimeInVeryLowPercentDelta Difference between the timeInVeryLowPercent in this period and version in the opposite offset
+	TimeInVeryLowPercentDelta *float64 `json:"timeInVeryLowPercentDelta,omitempty"`
+
 	// TimeInVeryLowRecords Counter of records in very low glucose range
 	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
 
+	// TimeInVeryLowRecordsDelta Difference between the timeInVeryLowRecords in this period and version in the opposite offset
+	TimeInVeryLowRecordsDelta *int `json:"timeInVeryLowRecordsDelta,omitempty"`
+
 	// TotalRecords Counter of records
 	TotalRecords *int `json:"totalRecords,omitempty"`
+
+	// TotalRecordsDelta Difference between the totalRecords in this period and version in the opposite offset
+	TotalRecordsDelta *int `json:"totalRecordsDelta,omitempty"`
 }
 
 // BGMPeriods A map to each supported BGM summary period
@@ -129,6 +168,9 @@ type BGMPeriods struct {
 type BGMStats struct {
 	// Buckets Rotating list containing the stats for each currently tracked hour in order
 	Buckets *[]Bucket `json:"buckets,omitempty"`
+
+	// OffsetPeriods A map to each supported BGM summary period
+	OffsetPeriods *BGMPeriods `json:"offsetPeriods,omitempty"`
 
 	// Periods A map to each supported BGM summary period
 	Periods *BGMPeriods `json:"periods,omitempty"`
@@ -196,90 +238,156 @@ type CGMPeriod struct {
 	// AverageDailyRecords Average daily readings
 	AverageDailyRecords *float64 `json:"averageDailyRecords,omitempty"`
 
+	// AverageDailyRecordsDelta Difference between the averageDailyRecords in this period and version in the opposite offset
+	AverageDailyRecordsDelta *float64 `json:"averageDailyRecordsDelta,omitempty"`
+
 	// AverageGlucose Blood glucose value, in `mmol/L`
 	AverageGlucose *AverageGlucose `json:"averageGlucose,omitempty"`
 
+	// AverageGlucoseDelta Difference between the averageGlucose in this period and the other offset version
+	AverageGlucoseDelta *float64 `json:"averageGlucoseDelta,omitempty"`
+
 	// GlucoseManagementIndicator A derived value which emulates A1C
-	GlucoseManagementIndicator    *float64 `json:"glucoseManagementIndicator,omitempty"`
-	HasAverageDailyRecords        *bool    `json:"hasAverageDailyRecords,omitempty"`
-	HasAverageGlucose             *bool    `json:"hasAverageGlucose,omitempty"`
-	HasGlucoseManagementIndicator *bool    `json:"hasGlucoseManagementIndicator,omitempty"`
-	HasTimeCGMUseMinutes          *bool    `json:"hasTimeCGMUseMinutes,omitempty"`
-	HasTimeCGMUsePercent          *bool    `json:"hasTimeCGMUsePercent,omitempty"`
-	HasTimeCGMUseRecords          *bool    `json:"hasTimeCGMUseRecords,omitempty"`
-	HasTimeInHighMinutes          *bool    `json:"hasTimeInHighMinutes,omitempty"`
-	HasTimeInHighPercent          *bool    `json:"hasTimeInHighPercent,omitempty"`
-	HasTimeInHighRecords          *bool    `json:"hasTimeInHighRecords,omitempty"`
-	HasTimeInLowMinutes           *bool    `json:"hasTimeInLowMinutes,omitempty"`
-	HasTimeInLowPercent           *bool    `json:"hasTimeInLowPercent,omitempty"`
-	HasTimeInLowRecords           *bool    `json:"hasTimeInLowRecords,omitempty"`
-	HasTimeInTargetMinutes        *bool    `json:"hasTimeInTargetMinutes,omitempty"`
-	HasTimeInTargetPercent        *bool    `json:"hasTimeInTargetPercent,omitempty"`
-	HasTimeInTargetRecords        *bool    `json:"hasTimeInTargetRecords,omitempty"`
-	HasTimeInVeryHighMinutes      *bool    `json:"hasTimeInVeryHighMinutes,omitempty"`
-	HasTimeInVeryHighPercent      *bool    `json:"hasTimeInVeryHighPercent,omitempty"`
-	HasTimeInVeryHighRecords      *bool    `json:"hasTimeInVeryHighRecords,omitempty"`
-	HasTimeInVeryLowMinutes       *bool    `json:"hasTimeInVeryLowMinutes,omitempty"`
-	HasTimeInVeryLowPercent       *bool    `json:"hasTimeInVeryLowPercent,omitempty"`
-	HasTimeInVeryLowRecords       *bool    `json:"hasTimeInVeryLowRecords,omitempty"`
-	HasTotalRecords               *bool    `json:"hasTotalRecords,omitempty"`
+	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator,omitempty"`
+
+	// GlucoseManagementIndicatorDelta Difference between the glucoseManagementIndicator in this period and the other offset version
+	GlucoseManagementIndicatorDelta *float64 `json:"glucoseManagementIndicatorDelta,omitempty"`
+	HasAverageDailyRecords          *bool    `json:"hasAverageDailyRecords,omitempty"`
+	HasAverageGlucose               *bool    `json:"hasAverageGlucose,omitempty"`
+	HasGlucoseManagementIndicator   *bool    `json:"hasGlucoseManagementIndicator,omitempty"`
+	HasTimeCGMUseMinutes            *bool    `json:"hasTimeCGMUseMinutes,omitempty"`
+	HasTimeCGMUsePercent            *bool    `json:"hasTimeCGMUsePercent,omitempty"`
+	HasTimeCGMUseRecords            *bool    `json:"hasTimeCGMUseRecords,omitempty"`
+	HasTimeInHighMinutes            *bool    `json:"hasTimeInHighMinutes,omitempty"`
+	HasTimeInHighPercent            *bool    `json:"hasTimeInHighPercent,omitempty"`
+	HasTimeInHighRecords            *bool    `json:"hasTimeInHighRecords,omitempty"`
+	HasTimeInLowMinutes             *bool    `json:"hasTimeInLowMinutes,omitempty"`
+	HasTimeInLowPercent             *bool    `json:"hasTimeInLowPercent,omitempty"`
+	HasTimeInLowRecords             *bool    `json:"hasTimeInLowRecords,omitempty"`
+	HasTimeInTargetMinutes          *bool    `json:"hasTimeInTargetMinutes,omitempty"`
+	HasTimeInTargetPercent          *bool    `json:"hasTimeInTargetPercent,omitempty"`
+	HasTimeInTargetRecords          *bool    `json:"hasTimeInTargetRecords,omitempty"`
+	HasTimeInVeryHighMinutes        *bool    `json:"hasTimeInVeryHighMinutes,omitempty"`
+	HasTimeInVeryHighPercent        *bool    `json:"hasTimeInVeryHighPercent,omitempty"`
+	HasTimeInVeryHighRecords        *bool    `json:"hasTimeInVeryHighRecords,omitempty"`
+	HasTimeInVeryLowMinutes         *bool    `json:"hasTimeInVeryLowMinutes,omitempty"`
+	HasTimeInVeryLowPercent         *bool    `json:"hasTimeInVeryLowPercent,omitempty"`
+	HasTimeInVeryLowRecords         *bool    `json:"hasTimeInVeryLowRecords,omitempty"`
+	HasTotalRecords                 *bool    `json:"hasTotalRecords,omitempty"`
 
 	// TimeCGMUseMinutes Counter of minutes spent wearing a cgm
 	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`
 
+	// TimeCGMUseMinutesDelta Difference between the timeCGMUseMinutes in this period and version in the opposite offset
+	TimeCGMUseMinutesDelta *int `json:"timeCGMUseMinutesDelta,omitempty"`
+
 	// TimeCGMUsePercent Percentage of time spent wearing a cgm
 	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent,omitempty"`
+
+	// TimeCGMUsePercentDelta Difference between the timeCGMUsePercent in this period and version in the opposite offset
+	TimeCGMUsePercentDelta *float64 `json:"timeCGMUsePercentDelta,omitempty"`
 
 	// TimeCGMUseRecords Counter of minutes spent wearing a cgm
 	TimeCGMUseRecords *int `json:"timeCGMUseRecords,omitempty"`
 
+	// TimeCGMUseRecordsDelta Difference between the timeCGMUseRecords in this period and version in the opposite offset
+	TimeCGMUseRecordsDelta *int `json:"timeCGMUseRecordsDelta,omitempty"`
+
 	// TimeInHighMinutes Counter of minutes spent in high glucose range
 	TimeInHighMinutes *int `json:"timeInHighMinutes,omitempty"`
+
+	// TimeInHighMinutesDelta Difference between the timeInHighMinutes in this period and version in the opposite offset
+	TimeInHighMinutesDelta *int `json:"timeInHighMinutesDelta,omitempty"`
 
 	// TimeInHighPercent Percentage of time spent in high glucose range
 	TimeInHighPercent *float64 `json:"timeInHighPercent,omitempty"`
 
+	// TimeInHighPercentDelta Difference between the timeInHighPercent in this period and version in the opposite offset
+	TimeInHighPercentDelta *float64 `json:"timeInHighPercentDelta,omitempty"`
+
 	// TimeInHighRecords Counter of records in high glucose range
 	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
+
+	// TimeInHighRecordsDelta Difference between the timeInHighRecords in this period and version in the opposite offset
+	TimeInHighRecordsDelta *int `json:"timeInHighRecordsDelta,omitempty"`
 
 	// TimeInLowMinutes Counter of minutes spent in low glucose range
 	TimeInLowMinutes *int `json:"timeInLowMinutes,omitempty"`
 
+	// TimeInLowMinutesDelta Difference between the timeInLowMinutes in this period and version in the opposite offset
+	TimeInLowMinutesDelta *int `json:"timeInLowMinutesDelta,omitempty"`
+
 	// TimeInLowPercent Percentage of time spent in low glucose range
 	TimeInLowPercent *float64 `json:"timeInLowPercent,omitempty"`
+
+	// TimeInLowPercentDelta Difference between the timeInLowPercent in this period and version in the opposite offset
+	TimeInLowPercentDelta *float64 `json:"timeInLowPercentDelta,omitempty"`
 
 	// TimeInLowRecords Counter of records in low glucose range
 	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
 
+	// TimeInLowRecordsDelta Difference between the timeInLowRecords in this period and version in the opposite offset
+	TimeInLowRecordsDelta *int `json:"timeInLowRecordsDelta,omitempty"`
+
 	// TimeInTargetMinutes Counter of minutes spent in target glucose range
 	TimeInTargetMinutes *int `json:"timeInTargetMinutes,omitempty"`
+
+	// TimeInTargetMinutesDelta Difference between the timeInTargetMinutes in this period and version in the opposite offset
+	TimeInTargetMinutesDelta *int `json:"timeInTargetMinutesDelta,omitempty"`
 
 	// TimeInTargetPercent Percentage of time spent in target glucose range
 	TimeInTargetPercent *float64 `json:"timeInTargetPercent,omitempty"`
 
+	// TimeInTargetPercentDelta Difference between the timeInTargetPercent in this period and version in the opposite offset
+	TimeInTargetPercentDelta *float64 `json:"timeInTargetPercentDelta,omitempty"`
+
 	// TimeInTargetRecords Counter of records in target glucose range
 	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
+
+	// TimeInTargetRecordsDelta Difference between the timeInTargetRecords in this period and version in the opposite offset
+	TimeInTargetRecordsDelta *int `json:"timeInTargetRecordsDelta,omitempty"`
 
 	// TimeInVeryHighMinutes Counter of minutes spent in very high glucose range
 	TimeInVeryHighMinutes *int `json:"timeInVeryHighMinutes,omitempty"`
 
+	// TimeInVeryHighMinutesDelta Difference between the timeInVeryHighMinutes in this period and version in the opposite offset
+	TimeInVeryHighMinutesDelta *int `json:"timeInVeryHighMinutesDelta,omitempty"`
+
 	// TimeInVeryHighPercent Percentage of time spent in very high glucose range
 	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent,omitempty"`
+
+	// TimeInVeryHighPercentDelta Difference between the timeInVeryHighPercent in this period and version in the opposite offset
+	TimeInVeryHighPercentDelta *float64 `json:"timeInVeryHighPercentDelta,omitempty"`
 
 	// TimeInVeryHighRecords Counter of records in very high glucose range
 	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
 
+	// TimeInVeryHighRecordsDelta Difference between the timeInVeryHighRecords in this period and version in the opposite offset
+	TimeInVeryHighRecordsDelta *int `json:"timeInVeryHighRecordsDelta,omitempty"`
+
 	// TimeInVeryLowMinutes Counter of minutes spent in very low glucose range
 	TimeInVeryLowMinutes *int `json:"timeInVeryLowMinutes,omitempty"`
+
+	// TimeInVeryLowMinutesDelta Difference between the timeInVeryLowMinutes in this period and version in the opposite offset
+	TimeInVeryLowMinutesDelta *int `json:"timeInVeryLowMinutesDelta,omitempty"`
 
 	// TimeInVeryLowPercent Percentage of time spent in very low glucose range
 	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent,omitempty"`
 
+	// TimeInVeryLowPercentDelta Difference between the timeInVeryLowPercent in this period and version in the opposite offset
+	TimeInVeryLowPercentDelta *float64 `json:"timeInVeryLowPercentDelta,omitempty"`
+
 	// TimeInVeryLowRecords Counter of records in very low glucose range
 	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
 
+	// TimeInVeryLowRecordsDelta Difference between the timeInVeryLowRecords in this period and version in the opposite offset
+	TimeInVeryLowRecordsDelta *int `json:"timeInVeryLowRecordsDelta,omitempty"`
+
 	// TotalRecords Counter of records
 	TotalRecords *int `json:"totalRecords,omitempty"`
+
+	// TotalRecordsDelta Difference between the totalRecords in this period and version in the opposite offset
+	TotalRecordsDelta *int `json:"totalRecordsDelta,omitempty"`
 }
 
 // CGMPeriods A map to each supported CGM summary period
@@ -301,6 +409,9 @@ type CGMPeriods struct {
 type CGMStats struct {
 	// Buckets Rotating list containing the stats for each currently tracked hour in order
 	Buckets *[]Bucket `json:"buckets,omitempty"`
+
+	// OffsetPeriods A map to each supported CGM summary period
+	OffsetPeriods *CGMPeriods `json:"offsetPeriods,omitempty"`
 
 	// Periods A map to each supported CGM summary period
 	Periods *CGMPeriods `json:"periods,omitempty"`

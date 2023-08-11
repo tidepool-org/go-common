@@ -6,17 +6,17 @@ github.com/apapsch/go-jsonmerge/v2
 # github.com/avast/retry-go v3.0.0+incompatible
 ## explicit
 github.com/avast/retry-go
-# github.com/bytedance/sonic v1.9.1
+# github.com/bytedance/sonic v1.10.0-rc3
 github.com/bytedance/sonic
 github.com/bytedance/sonic/ast
 github.com/bytedance/sonic/decoder
 github.com/bytedance/sonic/encoder
+github.com/bytedance/sonic/internal/abi
 github.com/bytedance/sonic/internal/caching
 github.com/bytedance/sonic/internal/cpu
 github.com/bytedance/sonic/internal/decoder
 github.com/bytedance/sonic/internal/encoder
 github.com/bytedance/sonic/internal/jit
-github.com/bytedance/sonic/internal/loader
 github.com/bytedance/sonic/internal/native
 github.com/bytedance/sonic/internal/native/avx
 github.com/bytedance/sonic/internal/native/avx2
@@ -28,8 +28,11 @@ github.com/bytedance/sonic/loader
 github.com/bytedance/sonic/option
 github.com/bytedance/sonic/unquote
 github.com/bytedance/sonic/utf8
-# github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311
+# github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d
 github.com/chenzhuoyu/base64x
+# github.com/chenzhuoyu/iasm v0.9.0
+github.com/chenzhuoyu/iasm/expr
+github.com/chenzhuoyu/iasm/x86_64
 # github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.2.0
 ## explicit
 github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2
@@ -53,7 +56,7 @@ github.com/cloudevents/sdk-go/v2/protocol/http
 github.com/cloudevents/sdk-go/v2/types
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/deepmap/oapi-codegen v1.13.0
+# github.com/deepmap/oapi-codegen v1.13.4
 ## explicit
 github.com/deepmap/oapi-codegen/pkg/runtime
 github.com/deepmap/oapi-codegen/pkg/types
@@ -88,7 +91,7 @@ github.com/go-playground/locales
 github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.18.1
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.14.0
+# github.com/go-playground/validator/v10 v10.14.1
 github.com/go-playground/validator/v10
 # github.com/goccy/go-json v0.10.2
 github.com/goccy/go-json
@@ -118,7 +121,7 @@ github.com/json-iterator/go
 # github.com/kelseyhightower/envconfig v1.4.0
 ## explicit
 github.com/kelseyhightower/envconfig
-# github.com/klauspost/compress v1.16.3
+# github.com/klauspost/compress v1.16.7
 github.com/klauspost/compress
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -126,11 +129,9 @@ github.com/klauspost/compress/internal/cpuinfo
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/cpuid/v2 v2.2.4
+# github.com/klauspost/cpuid/v2 v2.2.5
 github.com/klauspost/cpuid/v2
-# github.com/kr/pretty v0.3.0
-## explicit
-# github.com/labstack/echo/v4 v4.10.2
+# github.com/labstack/echo/v4 v4.11.1
 github.com/labstack/echo/v4
 # github.com/labstack/gommon v0.4.0
 github.com/labstack/gommon/color
@@ -148,7 +149,7 @@ github.com/mattn/go-isatty
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.2
 github.com/modern-go/reflect2
-# github.com/pelletier/go-toml/v2 v2.0.8
+# github.com/pelletier/go-toml/v2 v2.0.9
 github.com/pelletier/go-toml/v2
 github.com/pelletier/go-toml/v2/internal/characters
 github.com/pelletier/go-toml/v2/internal/danger
@@ -159,8 +160,6 @@ github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
 # github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 github.com/rcrowley/go-metrics
-# github.com/rogpeppe/go-internal v1.8.0
-## explicit
 # github.com/twitchyliquid64/golang-asm v0.15.1
 github.com/twitchyliquid64/golang-asm/asm/arch
 github.com/twitchyliquid64/golang-asm/bio
@@ -219,15 +218,16 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/arch v0.3.0
+# golang.org/x/arch v0.4.0
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.9.0
+# golang.org/x/crypto v0.12.0
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/md4
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/sha3
-# golang.org/x/net v0.10.0
+# golang.org/x/net v0.14.0
+## explicit
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/http/httpguts
@@ -237,10 +237,10 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/sys v0.8.0
+# golang.org/x/sys v0.11.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
-# golang.org/x/text v0.9.0
+# golang.org/x/text v0.12.0
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
@@ -249,7 +249,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# google.golang.org/protobuf v1.30.0
+# google.golang.org/protobuf v1.31.0
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/detrand
 google.golang.org/protobuf/internal/encoding/messageset
@@ -263,8 +263,6 @@ google.golang.org/protobuf/proto
 google.golang.org/protobuf/reflect/protoreflect
 google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
-# gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-## explicit
 # gopkg.in/jcmturner/aescts.v1 v1.0.1
 gopkg.in/jcmturner/aescts.v1
 # gopkg.in/jcmturner/dnsutils.v1 v1.0.1

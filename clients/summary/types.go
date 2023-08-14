@@ -14,23 +14,6 @@ const (
 	SessionTokenScopes = "sessionToken.Scopes"
 )
 
-// Defines values for AverageGlucoseUnits.
-const (
-	MmolL AverageGlucoseUnits = "mmol/L"
-	Mmoll AverageGlucoseUnits = "mmol/l"
-)
-
-// AverageGlucose Blood glucose value, in `mmol/L`
-type AverageGlucose struct {
-	Units AverageGlucoseUnits `json:"units"`
-
-	// Value A floating point value representing a `mmol/L` value.
-	Value float32 `json:"value"`
-}
-
-// AverageGlucoseUnits defines model for AverageGlucose.Units.
-type AverageGlucoseUnits string
-
 // BGMBucketData Series of counters which represent one hour of a users data
 type BGMBucketData struct {
 	Date           *time.Time `json:"date,omitempty"`
@@ -63,13 +46,13 @@ type BGMPeriod struct {
 	// AverageDailyRecordsDelta Difference between the averageDailyRecords in this period and version in the opposite offset
 	AverageDailyRecordsDelta *float64 `json:"averageDailyRecordsDelta,omitempty"`
 
-	// AverageGlucose Blood glucose value, in `mmol/L`
-	AverageGlucose *AverageGlucose `json:"averageGlucose,omitempty"`
+	// AverageGlucoseMmol Average Glucose of records in this period
+	AverageGlucoseMmol *float64 `json:"averageGlucoseMmol,omitempty"`
 
-	// AverageGlucoseDelta Difference between the averageGlucose in this period and the other offset version
-	AverageGlucoseDelta      *float64 `json:"averageGlucoseDelta,omitempty"`
+	// AverageGlucoseMmolDelta Difference between the averageGlucose in this period and the other offset version
+	AverageGlucoseMmolDelta  *float64 `json:"averageGlucoseMmolDelta,omitempty"`
 	HasAverageDailyRecords   *bool    `json:"hasAverageDailyRecords,omitempty"`
-	HasAverageGlucose        *bool    `json:"hasAverageGlucose,omitempty"`
+	HasAverageGlucoseMmol    *bool    `json:"hasAverageGlucoseMmol,omitempty"`
 	HasTimeInHighPercent     *bool    `json:"hasTimeInHighPercent,omitempty"`
 	HasTimeInHighRecords     *bool    `json:"hasTimeInHighRecords,omitempty"`
 	HasTimeInLowPercent      *bool    `json:"hasTimeInLowPercent,omitempty"`
@@ -150,19 +133,7 @@ type BGMPeriod struct {
 }
 
 // BGMPeriods A map to each supported BGM summary period
-type BGMPeriods struct {
-	// N14d Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
-	N14d *BGMPeriod `json:"14d,omitempty"`
-
-	// N1d Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
-	N1d *BGMPeriod `json:"1d,omitempty"`
-
-	// N30d Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
-	N30d *BGMPeriod `json:"30d,omitempty"`
-
-	// N7d Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
-	N7d *BGMPeriod `json:"7d,omitempty"`
-}
+type BGMPeriods map[string]BGMPeriod
 
 // BGMStats A summary of a users recent BGM glucose values
 type BGMStats struct {
@@ -241,11 +212,11 @@ type CGMPeriod struct {
 	// AverageDailyRecordsDelta Difference between the averageDailyRecords in this period and version in the opposite offset
 	AverageDailyRecordsDelta *float64 `json:"averageDailyRecordsDelta,omitempty"`
 
-	// AverageGlucose Blood glucose value, in `mmol/L`
-	AverageGlucose *AverageGlucose `json:"averageGlucose,omitempty"`
+	// AverageGlucoseMmol Average Glucose of records in this period
+	AverageGlucoseMmol *float64 `json:"averageGlucoseMmol,omitempty"`
 
-	// AverageGlucoseDelta Difference between the averageGlucose in this period and the other offset version
-	AverageGlucoseDelta *float64 `json:"averageGlucoseDelta,omitempty"`
+	// AverageGlucoseMmolDelta Difference between the averageGlucose in this period and the other offset version
+	AverageGlucoseMmolDelta *float64 `json:"averageGlucoseMmolDelta,omitempty"`
 
 	// GlucoseManagementIndicator A derived value which emulates A1C
 	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator,omitempty"`
@@ -253,7 +224,7 @@ type CGMPeriod struct {
 	// GlucoseManagementIndicatorDelta Difference between the glucoseManagementIndicator in this period and the other offset version
 	GlucoseManagementIndicatorDelta *float64 `json:"glucoseManagementIndicatorDelta,omitempty"`
 	HasAverageDailyRecords          *bool    `json:"hasAverageDailyRecords,omitempty"`
-	HasAverageGlucose               *bool    `json:"hasAverageGlucose,omitempty"`
+	HasAverageGlucoseMmol           *bool    `json:"hasAverageGlucoseMmol,omitempty"`
 	HasGlucoseManagementIndicator   *bool    `json:"hasGlucoseManagementIndicator,omitempty"`
 	HasTimeCGMUseMinutes            *bool    `json:"hasTimeCGMUseMinutes,omitempty"`
 	HasTimeCGMUsePercent            *bool    `json:"hasTimeCGMUsePercent,omitempty"`
@@ -391,19 +362,7 @@ type CGMPeriod struct {
 }
 
 // CGMPeriods A map to each supported CGM summary period
-type CGMPeriods struct {
-	// N14d Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	N14d *CGMPeriod `json:"14d,omitempty"`
-
-	// N1d Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	N1d *CGMPeriod `json:"1d,omitempty"`
-
-	// N30d Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	N30d *CGMPeriod `json:"30d,omitempty"`
-
-	// N7d Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	N7d *CGMPeriod `json:"7d,omitempty"`
-}
+type CGMPeriods map[string]CGMPeriod
 
 // CGMStats A summary of a users recent CGM glucose values
 type CGMStats struct {

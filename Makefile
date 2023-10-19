@@ -16,6 +16,10 @@ build:
 test:
 	go test $(GO_TEST_FLAGS) ./...
 
+.PHONY: test-cover
+test-cover:
+	go test -coverprofile cover.out $(GO_TEST_FLAGS) ./...
+
 # Generates client files
 generate:
 	swagger-cli bundle ../TidepoolApi/reference/summary.v1.yaml -o ./spec/summary.v1.yaml -t yaml

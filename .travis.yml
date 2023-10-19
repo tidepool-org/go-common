@@ -1,0 +1,11 @@
+sudo: false
+dist: jammy
+language: go
+go:
+  - 1.21.x
+go_import_path: github.com/tidepool-org/go-common
+script:
+  - CI=true make build test
+cache:
+  directories:
+    - $HOME/.cache/go-build

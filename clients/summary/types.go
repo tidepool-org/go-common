@@ -399,15 +399,6 @@ type Config struct {
 
 // Dates dates tracked for summary calculation
 type Dates struct {
-	// LastUpdatedReason List of reasons the summary was updated for
-	LastUpdatedReason *[]string `json:"LastUpdatedReason,omitempty"`
-
-	// OutdatedReason List of reasons the summary was marked outdated for
-	OutdatedReason *[]string `json:"OutdatedReason,omitempty"`
-
-	// OutdatedSinceLimit Upper limit of the OutdatedSince value to prevent infinite queue duration
-	OutdatedSinceLimit *time.Time `json:"OutdatedSinceLimit,omitempty"`
-
 	// FirstData Date of the first included value
 	FirstData         *time.Time `json:"firstData,omitempty"`
 	HasFirstData      *bool      `json:"hasFirstData,omitempty"`
@@ -421,11 +412,20 @@ type Dates struct {
 	// LastUpdatedDate Date of the last calculation
 	LastUpdatedDate *time.Time `json:"lastUpdatedDate,omitempty"`
 
+	// LastUpdatedReason List of reasons the summary was updated for
+	LastUpdatedReason *[]string `json:"lastUpdatedReason,omitempty"`
+
 	// LastUploadDate Created date of the last calculated value
 	LastUploadDate *time.Time `json:"lastUploadDate,omitempty"`
 
+	// OutdatedReason List of reasons the summary was marked outdated for
+	OutdatedReason *[]string `json:"outdatedReason,omitempty"`
+
 	// OutdatedSince Date of the first user upload after lastData, removed when calculated
 	OutdatedSince *time.Time `json:"outdatedSince,omitempty"`
+
+	// OutdatedSinceLimit Upper limit of the OutdatedSince value to prevent infinite queue duration
+	OutdatedSinceLimit *time.Time `json:"outdatedSinceLimit,omitempty"`
 }
 
 // Summary A summary of a users recent data

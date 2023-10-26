@@ -718,7 +718,7 @@ components:
           description: Date of the last calculation
           type: string
           format: date-time
-        LastUpdatedReason:
+        lastUpdatedReason:
           description: List of reasons the summary was updated for
           type: array
           items:
@@ -747,11 +747,11 @@ components:
           description: 'Date of the first user upload after lastData, removed when calculated'
           type: string
           format: date-time
-        OutdatedSinceLimit:
+        outdatedSinceLimit:
           description: Upper limit of the OutdatedSince value to prevent infinite queue duration
           type: string
           format: date-time
-        OutdatedReason:
+        outdatedReason:
           description: List of reasons the summary was marked outdated for
           type: array
           items:

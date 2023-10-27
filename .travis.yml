@@ -1,0 +1,13 @@
+dist: jammy
+
+language: go
+
+go:
+  - 1.21.3
+
+cache:
+  directories:
+    - $HOME/.cache/go-build
+
+script:
+  - ./test.sh

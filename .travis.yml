@@ -10,4 +10,4 @@ cache:
     - $HOME/.cache/go-build
 
 script:
-  - ./test.sh
+  - make build test-cover

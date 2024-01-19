@@ -184,3 +184,4 @@ golang.org/x/net/proxy
 ## explicit; go 1.18
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
+# gopkg.in/yaml.v2 v2.2.2 => gopkg.in/yaml.v2 v2.3.0

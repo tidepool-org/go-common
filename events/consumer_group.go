@@ -17,7 +17,6 @@ type SaramaConsumerGroup struct {
 	config        *CloudEventsConfig
 	consumerGroup sarama.ConsumerGroup
 	consumer      MessageConsumer
-	ready         chan bool
 	stop          chan struct{}
 	stopOnce      *sync.Once
 	topic         string
@@ -34,7 +33,6 @@ func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer)
 		consumer: consumer,
 		topic:    config.GetPrefixedTopic(),
 		wg:       &sync.WaitGroup{},
-		ready:    make(chan bool, 1),
 		stop:     make(chan struct{}),
 		stopOnce: &sync.Once{},
 	}, nil
@@ -48,8 +46,6 @@ func validateConsumerConfig(config *CloudEventsConfig) error {
 }
 
 func (s *SaramaConsumerGroup) Setup(session sarama.ConsumerGroupSession) error {
-	// Mark the consumer as ready
-	close(s.ready)
 	return nil
 }
 
@@ -102,7 +98,6 @@ func (s *SaramaConsumerGroup) Start() error {
 				errChan <- ErrConsumerStopped
 				return
 			}
-			s.ready = make(chan bool)
 		}
 	}()
 

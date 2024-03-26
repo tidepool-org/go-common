@@ -12,7 +12,9 @@ import (
 
 var ErrConsumerStopped = errors.New("consumer has been stopped")
 
-type SaramaConsumerGroup struct {
+// SaramaEventConsumer implements EventConsumer to consume messages received
+// via Sarama consumer groups.
+type SaramaEventConsumer struct {
 	config        *CloudEventsConfig
 	consumerGroup sarama.ConsumerGroup
 	consumer      MessageConsumer
@@ -27,7 +29,7 @@ func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer)
 		return nil, err
 	}
 
-	return &SaramaConsumerGroup{
+	return &SaramaEventConsumer{
 		config:   config,
 		consumer: consumer,
 		topic:    config.GetPrefixedTopic(),
@@ -41,27 +43,7 @@ func validateConsumerConfig(config *CloudEventsConfig) error {
 	return nil
 }
 
-func (s *SaramaConsumerGroup) Setup(session sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-func (s *SaramaConsumerGroup) Cleanup(session sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-func (s *SaramaConsumerGroup) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for message := range claim.Messages() {
-		if err := s.consumer.HandleKafkaMessage(message); err != nil {
-			log.Printf("failed to process kafka message: %v", err)
-			return err
-		}
-		session.MarkMessage(message, "")
-	}
-
-	return nil
-}
-
-func (s *SaramaConsumerGroup) Start() error {
+func (s *SaramaEventConsumer) Start() error {
 	if err := s.initialize(); err != nil {
 		return err
 	}
@@ -69,11 +51,12 @@ func (s *SaramaConsumerGroup) Start() error {
 	ctx, cancel := s.newContext()
 	defer cancel()
 
+	handler := &SaramaMessageConsumer{s.consumer}
 	for {
 		// `Consume` should be called inside an infinite loop, when a
 		// server-side rebalance happens, the consumer session will need to be
 		// recreated to get the new claims
-		if err := s.consumerGroup.Consume(ctx, []string{s.topic}, s); err != nil {
+		if err := s.consumerGroup.Consume(ctx, []string{s.topic}, handler); err != nil {
 			log.Printf("Error from consumer: %v", err)
 			if err == context.Canceled {
 				return ErrConsumerStopped
@@ -83,7 +66,7 @@ func (s *SaramaConsumerGroup) Start() error {
 	}
 }
 
-func (s *SaramaConsumerGroup) Stop() error {
+func (s *SaramaEventConsumer) Stop() error {
 	s.cancelFuncMu.Lock()
 	defer s.cancelFuncMu.Unlock()
 
@@ -94,7 +77,7 @@ func (s *SaramaConsumerGroup) Stop() error {
 	return nil
 }
 
-func (s *SaramaConsumerGroup) newContext() (context.Context, context.CancelFunc) {
+func (s *SaramaEventConsumer) newContext() (context.Context, context.CancelFunc) {
 	s.cancelFuncMu.Lock()
 	defer s.cancelFuncMu.Unlock()
 	if s.cancelFunc != nil {
@@ -105,7 +88,7 @@ func (s *SaramaConsumerGroup) newContext() (context.Context, context.CancelFunc)
 	return ctx, cancel
 }
 
-func (s *SaramaConsumerGroup) initialize() error {
+func (s *SaramaEventConsumer) initialize() error {
 	cg, err := sarama.NewConsumerGroup(
 		s.config.KafkaBrokers,
 		s.config.KafkaConsumerGroup,
@@ -120,5 +103,35 @@ func (s *SaramaConsumerGroup) initialize() error {
 	}
 
 	s.consumerGroup = cg
+	return nil
+}
+
+// SaramaMessageConsumer implements sarama.ConsumerGroupHandler.
+//
+// It adapts a MessageConsumer for this purpose.
+type SaramaMessageConsumer struct {
+	MessageConsumer
+}
+
+// Cleanup implements sarama.ConsumerGroupHandler.sarama.ConsumeGroupHandler.
+func (c *SaramaMessageConsumer) Cleanup(_ sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+// ConsumeClaim implements sarama.ConsumerGroupHandler.sarama.ConsumeGroupHandler.
+func (c *SaramaMessageConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for message := range claim.Messages() {
+		if err := c.HandleKafkaMessage(message); err != nil {
+			log.Printf("failed to process kafka message: %v", err)
+			return err
+		}
+		session.MarkMessage(message, "")
+	}
+
+	return nil
+}
+
+// Setup implements sarama.ConsumerGroupHandler.sarama.ConsumeGroupHandler.
+func (c *SaramaMessageConsumer) Setup(_ sarama.ConsumerGroupSession) error {
 	return nil
 }

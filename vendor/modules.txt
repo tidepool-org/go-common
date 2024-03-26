@@ -10,8 +10,8 @@ github.com/avast/retry-go
 # github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.14.0
 ## explicit; go 1.17
 github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2
-# github.com/cloudevents/sdk-go/v2 v2.14.0
-## explicit; go 1.17
+# github.com/cloudevents/sdk-go/v2 v2.15.2
+## explicit; go 1.18
 github.com/cloudevents/sdk-go/v2
 github.com/cloudevents/sdk-go/v2/binding
 github.com/cloudevents/sdk-go/v2/binding/format

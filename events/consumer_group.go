@@ -3,10 +3,12 @@ package events
 import (
 	"context"
 	"fmt"
-	"github.com/IBM/sarama"
-	"github.com/tidepool-org/go-common/errors"
 	"log"
 	"sync"
+
+	"github.com/IBM/sarama"
+
+	"github.com/tidepool-org/go-common/errors"
 )
 
 var ErrConsumerStopped = errors.New("consumer has been stopped")
@@ -36,6 +38,13 @@ func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer)
 		stop:     make(chan struct{}),
 		stopOnce: &sync.Once{},
 	}, nil
+}
+
+func validateConsumerConfig(config *CloudEventsConfig) error {
+	if config.KafkaConsumerGroup == "" {
+		return errors.New("consumer group cannot be empty")
+	}
+	return nil
 }
 
 func (s *SaramaConsumerGroup) Setup(session sarama.ConsumerGroupSession) error {

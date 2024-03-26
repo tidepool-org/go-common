@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"sync"
 
@@ -17,10 +16,10 @@ type SaramaConsumerGroup struct {
 	config        *CloudEventsConfig
 	consumerGroup sarama.ConsumerGroup
 	consumer      MessageConsumer
-	stop          chan struct{}
-	stopOnce      *sync.Once
 	topic         string
-	wg            *sync.WaitGroup
+
+	cancelFuncMu sync.Mutex
+	cancelFunc   context.CancelFunc
 }
 
 func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer) (EventConsumer, error) {
@@ -32,9 +31,6 @@ func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer)
 		config:   config,
 		consumer: consumer,
 		topic:    config.GetPrefixedTopic(),
-		wg:       &sync.WaitGroup{},
-		stop:     make(chan struct{}),
-		stopOnce: &sync.Once{},
 	}, nil
 }
 
@@ -70,66 +66,43 @@ func (s *SaramaConsumerGroup) Start() error {
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-s.stop
-		cancel()
-	}()
+	ctx, cancel := s.newContext()
+	defer cancel()
 
-	errChan := make(chan error)
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		for {
-			// `Consume` should be called inside an infinite loop, when a
-			// server-side rebalance happens, the consumer session will need to be
-			// recreated to get the new claims
-			if err := s.consumerGroup.Consume(ctx, []string{s.topic}, s); err != nil {
-				log.Printf("Error from consumer: %v", err)
-				// It's not clear whether this condition can be true
-				if err == context.Canceled {
-					err = ErrConsumerStopped
-				}
-				errChan <- err
-				return
+	for {
+		// `Consume` should be called inside an infinite loop, when a
+		// server-side rebalance happens, the consumer session will need to be
+		// recreated to get the new claims
+		if err := s.consumerGroup.Consume(ctx, []string{s.topic}, s); err != nil {
+			log.Printf("Error from consumer: %v", err)
+			if err == context.Canceled {
+				return ErrConsumerStopped
 			}
-			// check if context was cancelled, signaling that the consumer should stop
-			if ctx.Err() != nil {
-				errChan <- ErrConsumerStopped
-				return
-			}
+			return err
 		}
-	}()
-
-	err := <-errChan
-	if err == ErrConsumerStopped {
-		return err
 	}
-
-	// The consumer group was terminated with an unexpected error.
-	// We need to call stop, so we cancel the context and stop the
-	// go routine so it doesn't leak on restart.
-	if e := s.Stop(); e != nil {
-		err = fmt.Errorf("%w: %s", err, e.Error())
-	}
-
-	return err
 }
 
 func (s *SaramaConsumerGroup) Stop() error {
-	// Initialization failed
-	if s.consumerGroup == nil {
-		return nil
+	s.cancelFuncMu.Lock()
+	defer s.cancelFuncMu.Unlock()
+
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+		s.cancelFunc = nil
 	}
+	return nil
+}
 
-	// Signal that the consumer group should be terminated
-	s.stopOnce.Do(func() {
-		s.stop <- struct{}{}
-	})
-
-	// Wait for the consumer group to exit
-	s.wg.Wait()
-	return s.consumerGroup.Close()
+func (s *SaramaConsumerGroup) newContext() (context.Context, context.CancelFunc) {
+	s.cancelFuncMu.Lock()
+	defer s.cancelFuncMu.Unlock()
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancelFunc = cancel
+	return ctx, cancel
 }
 
 func (s *SaramaConsumerGroup) initialize() error {

@@ -219,10 +219,10 @@ type CGMBucketData struct {
 	TotalRecords int `json:"totalRecords"`
 
 	// VeryHighMinutes Counter of minutes spent in very high glucose range
-	VeryHighMinutes *int `json:"veryHighMinutes,omitempty"`
+	VeryHighMinutes int `json:"veryHighMinutes"`
 
 	// VeryHighRecords Counter of records in very high glucose range
-	VeryHighRecords *int `json:"veryHighRecords,omitempty"`
+	VeryHighRecords int `json:"veryHighRecords"`
 
 	// VeryLowMinutes Counter of minutes spent in very low glucose range
 	VeryLowMinutes int `json:"veryLowMinutes"`

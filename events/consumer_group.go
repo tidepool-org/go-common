@@ -15,10 +15,9 @@ var ErrConsumerStopped = errors.New("consumer has been stopped")
 // SaramaEventConsumer implements EventConsumer to consume messages received
 // via Sarama consumer groups.
 type SaramaEventConsumer struct {
-	config        *CloudEventsConfig
-	consumerGroup sarama.ConsumerGroup
-	consumer      MessageConsumer
-	topic         string
+	config   *CloudEventsConfig
+	consumer MessageConsumer
+	topic    string
 
 	cancelFuncMu sync.Mutex
 	cancelFunc   context.CancelFunc
@@ -26,6 +25,9 @@ type SaramaEventConsumer struct {
 
 func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer) (EventConsumer, error) {
 	if err := validateConsumerConfig(config); err != nil {
+		return nil, err
+	}
+	if err := consumer.Initialize(config); err != nil {
 		return nil, err
 	}
 
@@ -44,19 +46,25 @@ func validateConsumerConfig(config *CloudEventsConfig) error {
 }
 
 func (s *SaramaEventConsumer) Start() error {
-	if err := s.initialize(); err != nil {
-		return err
-	}
 
 	ctx, cancel := s.newContext()
 	defer cancel()
+
+	cg, err := sarama.NewConsumerGroup(
+		s.config.KafkaBrokers,
+		s.config.KafkaConsumerGroup,
+		s.config.SaramaConfig,
+	)
+	if err != nil {
+		return err
+	}
 
 	handler := &SaramaMessageConsumer{s.consumer}
 	for {
 		// `Consume` should be called inside an infinite loop, when a
 		// server-side rebalance happens, the consumer session will need to be
 		// recreated to get the new claims
-		if err := s.consumerGroup.Consume(ctx, []string{s.topic}, handler); err != nil {
+		if err := cg.Consume(ctx, []string{s.topic}, handler); err != nil {
 			log.Printf("Error from consumer: %v", err)
 			if err == context.Canceled {
 				return ErrConsumerStopped
@@ -86,24 +94,6 @@ func (s *SaramaEventConsumer) newContext() (context.Context, context.CancelFunc)
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancelFunc = cancel
 	return ctx, cancel
-}
-
-func (s *SaramaEventConsumer) initialize() error {
-	cg, err := sarama.NewConsumerGroup(
-		s.config.KafkaBrokers,
-		s.config.KafkaConsumerGroup,
-		s.config.SaramaConfig,
-	)
-	if err != nil {
-		return err
-	}
-
-	if err := s.consumer.Initialize(s.config); err != nil {
-		return err
-	}
-
-	s.consumerGroup = cg
-	return nil
 }
 
 // SaramaMessageConsumer implements sarama.ConsumerGroupHandler.

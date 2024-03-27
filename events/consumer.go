@@ -47,6 +47,7 @@ func (c *CloudEventsMessageConsumer) Initialize(config *CloudEventsConfig) error
 }
 
 func (c *CloudEventsMessageConsumer) HandleKafkaMessage(cm *sarama.ConsumerMessage) error {
+	log.Printf("HandleKafkaMessage %+v", cm)
 	message := kafka_sarama.NewMessageFromConsumerMessage(cm)
 	if rs, rserr := binding.ToEvent(context.Background(), message); rserr == nil {
 		c.handleCloudEvent(*rs)
@@ -56,6 +57,7 @@ func (c *CloudEventsMessageConsumer) HandleKafkaMessage(cm *sarama.ConsumerMessa
 
 func (c *CloudEventsMessageConsumer) handleCloudEvent(ce cloudevents.Event) {
 	var errors []error
+	log.Printf("handling cloud event: %+v", ce)
 	for _, handler := range c.handlers {
 		if handler.CanHandle(ce) {
 			if err := handler.Handle(ce); err != nil {

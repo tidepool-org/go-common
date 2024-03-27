@@ -23,7 +23,7 @@ type SaramaEventConsumer struct {
 	cancelFunc   context.CancelFunc
 }
 
-func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer) (EventConsumer, error) {
+func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer) (*SaramaEventConsumer, error) {
 	if err := validateConsumerConfig(config); err != nil {
 		return nil, err
 	}

@@ -17,7 +17,6 @@ var ErrConsumerStopped = errors.New("consumer has been stopped")
 type SaramaEventConsumer struct {
 	config   *CloudEventsConfig
 	consumer MessageConsumer
-	topic    string
 
 	cancelFuncMu sync.Mutex
 	cancelFunc   context.CancelFunc
@@ -34,7 +33,6 @@ func NewSaramaConsumerGroup(config *CloudEventsConfig, consumer MessageConsumer)
 	return &SaramaEventConsumer{
 		config:   config,
 		consumer: consumer,
-		topic:    config.GetPrefixedTopic(),
 	}, nil
 }
 
@@ -60,11 +58,12 @@ func (s *SaramaEventConsumer) Start() error {
 	}
 
 	handler := &SaramaMessageConsumer{s.consumer}
+	topics := []string{s.config.GetPrefixedTopic()}
 	for {
 		// `Consume` should be called inside an infinite loop, when a
 		// server-side rebalance happens, the consumer session will need to be
 		// recreated to get the new claims
-		if err := cg.Consume(ctx, []string{s.topic}, handler); err != nil {
+		if err := cg.Consume(ctx, topics, handler); err != nil {
 			log.Printf("Error from consumer: %v", err)
 			if err == context.Canceled {
 				return ErrConsumerStopped

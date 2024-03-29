@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	stderrors "errors"
 	"log"
 	"sync"
 
@@ -65,7 +66,15 @@ func (s *SaramaEventConsumer) Start() error {
 		// recreated to get the new claims
 		if err := cg.Consume(ctx, topics, handler); err != nil {
 			log.Printf("Error from consumer: %v", err)
-			if err == context.Canceled {
+			if stderrors.Is(err, context.Canceled) {
+				return ErrConsumerStopped
+			}
+			return err
+		}
+		// Double check the context isn't canceled before looping. This is necessary as
+		// Consume() sometimes returns nil when the context is canceled.
+		if err := ctx.Err(); err != nil {
+			if stderrors.Is(err, context.Canceled) {
 				return ErrConsumerStopped
 			}
 			return err

@@ -102,12 +102,12 @@ type SaramaMessageConsumer struct {
 	MessageConsumer
 }
 
-// Cleanup implements sarama.ConsumerGroupHandler.sarama.ConsumeGroupHandler.
+// Cleanup implements sarama.ConsumerGroupHandler.
 func (c *SaramaMessageConsumer) Cleanup(_ sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-// ConsumeClaim implements sarama.ConsumerGroupHandler.sarama.ConsumeGroupHandler.
+// ConsumeClaim implements sarama.ConsumerGroupHandler.
 func (c *SaramaMessageConsumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
 		if err := c.HandleKafkaMessage(message); err != nil {
@@ -120,7 +120,7 @@ func (c *SaramaMessageConsumer) ConsumeClaim(session sarama.ConsumerGroupSession
 	return nil
 }
 
-// Setup implements sarama.ConsumerGroupHandler.sarama.ConsumeGroupHandler.
+// Setup implements sarama.ConsumerGroupHandler.
 func (c *SaramaMessageConsumer) Setup(_ sarama.ConsumerGroupSession) error {
 	return nil
 }

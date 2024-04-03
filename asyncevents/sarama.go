@@ -2,162 +2,179 @@ package asyncevents
 
 import (
 	"context"
-	stderrors "errors"
+	"errors"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/Shopify/sarama"
 )
 
-// SaramaReceiver implements asynchronous event processing for messages
-// received via Kafka.
-type SaramaProcessor struct {
-	cancel     context.CancelFunc
-	config     SaramaConfig
-	processors []SaramaConsumerMessageProcessor
+// SaramaAsyncEventsConsumer consumes Kafka messages for asynchronous event
+// handling.
+type SaramaAsyncEventsConsumer struct {
+	handler       sarama.ConsumerGroupHandler
+	consumerGroup sarama.ConsumerGroup
+	topics        []string
+
+	// stopTimeout controls the time that Stop waits for the consumer to start
+	// before aborting.
+	stopTimeout time.Duration
+	// cancelFunc ensures that a consumer isn't stopped before it starts.
+	//
+	// Calling Stop will read from this channel, which must not have anything
+	// to read until Start is called.
+	cancelFunc chan context.CancelFunc
+	startOnce  sync.Once
 }
 
-type SaramaConsumerMessageProcessor interface {
-	Process(ctx context.Context, msg *sarama.ConsumerMessage) error
-	Topics() []string
-}
+const (
+	DefaultSaramaAsyncEventConsumerStopTimeout = time.Second
+)
 
-type SubProcessor struct{}
+func NewSaramaEventsConsumer(consumerGroup sarama.ConsumerGroup,
+	handler sarama.ConsumerGroupHandler, topics ...string) *SaramaAsyncEventsConsumer {
 
-func (p *SubProcessor) Process(ctx context.Context, msg *sarama.ConsumerMessage) error { return nil }
-
-func (p *SubProcessor) Topics() []string { return nil }
-
-func NewSaramaProcessor(config SaramaConfig, processors []SaramaConsumerMessageProcessor) *SaramaProcessor {
-	return &SaramaProcessor{
-		config:     config,
-		processors: processors,
+	return &SaramaAsyncEventsConsumer{
+		cancelFunc:    make(chan context.CancelFunc, 1),
+		consumerGroup: consumerGroup,
+		handler:       handler,
+		stopTimeout:   DefaultSaramaAsyncEventConsumerStopTimeout,
+		topics:        topics,
 	}
 }
 
-// Start processing messages.
+// Start consuming Kafka messages.
 //
-// The caller must call Stop() lest memory be leaked.
-func (p *SaramaProcessor) Start(ctx context.Context) error {
-	consumerGroup, err := p.config.NewConsumerGroup()
+// If Start begins consuming Kafka messages, then it will block until Stop is
+// called. If the consumer is already running, Start returns
+// ErrAlreadyStarted.
+//
+// The caller is responsible for calling Stop() to cleanup resources.
+func (p *SaramaAsyncEventsConsumer) Start(ctx context.Context) (err error) {
+	ctx, cancel, err := p.start(ctx)
 	if err != nil {
 		return err
 	}
+	defer cancel()
 
-	ctx, cancel := NewContextWithSafeCancel(ctx)
-	p.cancel = cancel // Stop() calls p.cancel()
+	defer func() {
+		if errors.Is(err, context.Canceled) {
+			err = nil
+		}
+	}()
 
-	handler := &SaramaConsumerGroupHandler{p.processors}
-	topics := p.uniqueTopics()
 	for {
-		err := consumerGroup.Consume(ctx, topics, handler)
+		//log.Printf("Start(): loop")
+		err := p.consumerGroup.Consume(ctx, p.topics, p.handler)
 		if err != nil {
-			if stderrors.Is(err, context.Canceled) {
-				return nil
-			}
 			return err
 		}
-	}
-}
-
-// uniqueTopics builds a list of unique topics by querying each processors'
-// topics.
-func (p *SaramaProcessor) uniqueTopics() []string {
-	topicsMap := map[string]struct{}{}
-	topics := []string{}
-	for _, processor := range p.processors {
-		for _, topic := range processor.Topics() {
-			if _, seen := topicsMap[topic]; !seen {
-				topicsMap[topic] = struct{}{}
-				topics = append(topics, topic)
-			}
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
 		}
 	}
-	return topics
 }
 
-// Stop processing.
-func (p *SaramaProcessor) Stop() error {
-	p.cancel()
-	return nil
-}
+// start ensures that the events consumer is started only once.
+func (p *SaramaAsyncEventsConsumer) start(ctx context.Context) (context.Context, context.CancelFunc, error) {
+	var newCtx context.Context
+	var cancel context.CancelFunc
+	var err error = ErrAlreadyStarted
 
-// SaramaConfig wraps up the various config needed to create a
-// sarama.ConsumerGroup.
-type SaramaConfig struct {
-	Addrs   []string
-	GroupID string
-	Config  *sarama.Config
-}
+	p.startOnce.Do(func() {
+		newCtx, cancel = context.WithCancel(ctx)
+		select {
+		case p.cancelFunc <- cancel:
+			close(p.cancelFunc)
+			err = nil
+		case <-time.After(time.Second):
+			err = ErrStartBlocked
+		}
+	})
 
-// NewConsumerGroup is a helper for creating a sarama.ConsumerGroup.
-func (c SaramaConfig) NewConsumerGroup() (sarama.ConsumerGroup, error) {
-	return sarama.NewConsumerGroup(c.Addrs, c.GroupID, c.Config)
-}
-
-// SaramaConsumerGroupHandler implements sarama.ConsumerGroupHandler.
-type SaramaConsumerGroupHandler struct {
-	processors []SaramaConsumerMessageProcessor
-}
-
-// Setup implements sarama.ConsumerGroupHandler.
-func (h *SaramaConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-// Cleanup implements sarama.ConsumerGroupHandler.
-func (h *SaramaConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
-	return nil
+	return newCtx, cancel, err
 }
 
 var (
-	MaxMessageProcessingDuration = time.Minute
+	ErrAlreadyStarted  = errors.New("already started")
+	ErrStartBlocked    = errors.New("Start() is blocked, this should _never_ happen")
+	ErrStopBeforeStart = errors.New("Stop() called before Start()")
+)
+
+// Stop consuming Kafka messages.
+//
+// It returns an error if Stop is called before Start(). This should probably
+// take a context.
+//
+// TODO: this should probably take a context.
+func (p *SaramaAsyncEventsConsumer) Stop() error {
+	select {
+	case cancel := <-p.cancelFunc:
+		if cancel != nil {
+			cancel()
+		}
+		return nil
+	case <-time.After(p.stopTimeout):
+		return ErrStopBeforeStart
+	}
+}
+
+// saramaConsumerGroupHandler implements sarama.ConsumerGroupHandler.
+type saramaConsumerGroupHandler struct {
+	consumer        SaramaMessageConsumer
+	consumerTimeout time.Duration
+}
+
+func NewSaramaConsumerGroupHandler(consumer SaramaMessageConsumer, timeout time.Duration) *saramaConsumerGroupHandler {
+	if timeout == 0 {
+		timeout = DefaultMessageConsumptionTimeout
+	}
+	return &saramaConsumerGroupHandler{
+		consumer:        consumer,
+		consumerTimeout: timeout,
+	}
+}
+
+// Setup implements sarama.ConsumerGroupHandler.
+func (h *saramaConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error { return nil }
+
+// Cleanup implements sarama.ConsumerGroupHandler.
+func (h *saramaConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
+
+var (
+	// DefaultMessageConsumptionTimeout is the default time to allow
+	// SaramaMessageConsumer.Consume to work before aborting.
+	DefaultMessageConsumptionTimeout = time.Minute
 )
 
 // ConsumeClaim implements sarama.ConsumerGroupHandler.
-func (h *SaramaConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+func (h *saramaConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
+	claim sarama.ConsumerGroupClaim) error {
+
 	for message := range claim.Messages() {
-		err := h.handleMessage(message)
+		err := func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), h.consumerTimeout)
+			defer cancel()
+			return h.consumer.Consume(ctx, session, message)
+		}()
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				// TODO consult some sort of error handler for what to do next
+				log.Printf("timed out")
+			}
 			return err
 		}
-		// success
-		session.MarkMessage(message, "")
 	}
-
 	return nil
 }
 
-func (h *SaramaConsumerGroupHandler) handleMessage(message *sarama.ConsumerMessage) error {
-	msgErrs := []error{}
-	for _, proc := range h.processors {
-		err := h.processWithTimeout(proc, message, MaxMessageProcessingDuration)
-		if err != nil {
-			msgErrs = append(msgErrs, err)
-		}
-	}
-	if len(msgErrs) > 0 {
-		// TODO dispatch some error handling, and probably pass in msgErrs... Or a map from processor to error?
-		return stderrors.Join(msgErrs...)
-	}
-
-	return nil
-}
-
-// processWithTimeout is a helper that wraps a call to Process with
-// timeout-enabled context.
-func (h *SaramaConsumerGroupHandler) processWithTimeout(proc SaramaConsumerMessageProcessor,
-	message *sarama.ConsumerMessage, timeout time.Duration) error {
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	return proc.Process(ctx, message)
-}
-
-// NewContextWithSafeCancel wraps a context.Context with a thread-safe cancel
-// function.
-func NewContextWithSafeCancel(ctx context.Context) (context.Context, context.CancelFunc) {
-	cancelable, cancel := context.WithCancel(ctx)
-	var once sync.Once
-	return cancelable, func() { once.Do(cancel) }
+// SaramaMessageConsumer processes Kafka messages.
+type SaramaMessageConsumer interface {
+	// Consume should process a message.
+	//
+	// Consume is responsible for marking the message consumed, unless the
+	// context is canceled, in which case the caller should retry, or mark the
+	// message as appropriate.
+	Consume(ctx context.Context, session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) error
 }

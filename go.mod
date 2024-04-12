@@ -39,7 +39,6 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/xdg/stringprep v1.0.3 // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
@@ -47,6 +46,3 @@ require (
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 )
-
-// Resolve GO-2020-0036, GO-2021-0061, GO-2022-0956
-replace gopkg.in/yaml.v2 v2.2.2 => gopkg.in/yaml.v2 v2.3.0

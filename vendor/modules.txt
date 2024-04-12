@@ -155,8 +155,6 @@ github.com/xdg/scram
 # github.com/xdg/stringprep v1.0.3
 ## explicit
 github.com/xdg/stringprep
-# go.uber.org/goleak v1.3.0
-## explicit; go 1.20
 # go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr
@@ -186,4 +184,3 @@ golang.org/x/net/proxy
 ## explicit; go 1.18
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# gopkg.in/yaml.v2 v2.2.2 => gopkg.in/yaml.v2 v2.3.0

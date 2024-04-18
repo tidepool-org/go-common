@@ -9,60 +9,37 @@ import (
 	"github.com/Shopify/sarama"
 )
 
+var errTest error = errors.New("test error")
+
 func TestSaramaAsyncEventsConsumerLifecycle(s *testing.T) {
 	consumerGroup := &nullSaramaConsumerGroup{}
-	handler := &nullSaramaConsumerGroupHandler{}
 	topics := []string{"test"}
 
 	s.Run("successful start and stop", func(t *testing.T) {
-		ctx := context.Background()
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		handler := &nullSaramaConsumerGroupHandler{}
 		eventsConsumer := NewSaramaEventsConsumer(consumerGroup, handler, topics...)
-
-		launchStart(ctx, t, eventsConsumer)
-
-		if err := eventsConsumer.Stop(); !errors.Is(err, nil) {
-			t.Errorf("expected Start() to return nil, got %v", err)
+		err := launchStart(ctx, t, eventsConsumer)
+		if !errors.Is(err, nil) {
+			t.Errorf("expected nil error, got %v", err)
 		}
 	})
 
-	s.Run("calling Stop before Start is an error", func(t *testing.T) {
+	s.Run("reports errors (that aren't context.Canceled)", func(t *testing.T) {
+		consumerGroup := &erroringSaramaConsumerGroup{err: errTest}
+		handler := &nullSaramaConsumerGroupHandler{}
 		eventsConsumer := NewSaramaEventsConsumer(consumerGroup, handler, topics...)
-		eventsConsumer.stopTimeout = time.Nanosecond
-
-		if err := eventsConsumer.Stop(); !errors.Is(err, ErrStopBeforeStart) {
-			t.Errorf("expected Stop() to return %s, got %v", ErrStopBeforeStart, err)
-		}
-	})
-
-	s.Run("calling Stop multiple times is not an error", func(t *testing.T) {
-		ctx := context.Background()
-		eventsConsumer := NewSaramaEventsConsumer(consumerGroup, handler, topics...)
-
-		launchStart(ctx, t, eventsConsumer)
-
-		if err := eventsConsumer.Stop(); !errors.Is(err, nil) {
-			t.Errorf("expected Stop() to return nil, got %v", err)
-		}
-		if err := eventsConsumer.Stop(); !errors.Is(err, nil) {
-			t.Errorf("expected Stop() to return nil, got %v", err)
-		}
-	})
-
-	s.Run("calling Start more than once returns an error", func(t *testing.T) {
-		ctx := context.Background()
-		eventsConsumer := NewSaramaEventsConsumer(consumerGroup, handler, topics...)
-
-		launchStart(ctx, t, eventsConsumer)
-
-		if err := eventsConsumer.Start(ctx); !errors.Is(err, ErrAlreadyStarted) {
-			t.Errorf("expected Start() to return %s, got %v", ErrAlreadyStarted, err)
+		err := launchStart(context.Background(), t, eventsConsumer)
+		if !errors.Is(err, errTest) {
+			t.Errorf("expected %s, got %v", errTest, err)
 		}
 	})
 }
 
 func TestSaramaConsumerGroupHandler(s *testing.T) {
 	s.Run("works as expected", func(t *testing.T) {
-		testConsumer := &sleepingSaramaMessageConsumer{time.Nanosecond}
+		testConsumer := &sleepingSaramaMessageConsumer{time.Nanosecond, nil}
 		testSession := &nullSaramaConsumerGroupSession{}
 		messages := make(chan *sarama.ConsumerMessage)
 		testClaim := newTestSaramaConsumerGroupClaim(messages)
@@ -75,8 +52,8 @@ func TestSaramaConsumerGroupHandler(s *testing.T) {
 		}
 	})
 
-	s.Run("enforces its timeout", func(t *testing.T) {
-		testConsumer := &sleepingSaramaMessageConsumer{time.Second}
+	s.Run("returns errors", func(t *testing.T) {
+		testConsumer := newCountingSaramaMessageConsumer(errTest)
 		testSession := &nullSaramaConsumerGroupSession{}
 		messages := make(chan *sarama.ConsumerMessage)
 		testClaim := newTestSaramaConsumerGroupClaim(messages)
@@ -84,8 +61,74 @@ func TestSaramaConsumerGroupHandler(s *testing.T) {
 		handler := NewSaramaConsumerGroupHandler(testConsumer, time.Nanosecond)
 
 		err := handler.ConsumeClaim(testSession, testClaim)
-		if !errors.Is(err, context.DeadlineExceeded) {
+		if !errors.Is(err, errTest) {
+			t.Errorf("expected ConsumeClaim to return %s, got %v", errTest, err)
+		}
+	})
+
+	s.Run("enforces a deadline", func(t *testing.T) {
+		testConsumer := &sleepingSaramaMessageConsumer{time.Second, nil}
+		testSession := &nullSaramaConsumerGroupSession{}
+		messages := make(chan *sarama.ConsumerMessage)
+		testClaim := newTestSaramaConsumerGroupClaim(messages)
+		go func() { messages <- &sarama.ConsumerMessage{}; close(messages) }()
+		handler := NewSaramaConsumerGroupHandler(testConsumer, time.Nanosecond)
+
+		err := handler.ConsumeClaim(testSession, testClaim)
+		if !errors.Is(testConsumer.consumeError, context.DeadlineExceeded) {
 			t.Errorf("expected ConsumeClaim to return %s, got %v", context.DeadlineExceeded, err)
+		}
+	})
+}
+
+func TestNTimesRetryingConsumer(s *testing.T) {
+	var testTimes = 3
+
+	s.Run("retries N times", func(t *testing.T) {
+		testConsumer := newCountingSaramaMessageConsumer(errTest)
+		c := &NTimesRetryingConsumer{
+			Times:    testTimes,
+			Consumer: testConsumer,
+		}
+		ctx := context.Background()
+		err := c.Consume(ctx, nil, nil)
+		if !errors.Is(err, ErrRetriesLimitExceeded) {
+			t.Errorf("expected %s, got %v", ErrRetriesLimitExceeded, err)
+		}
+		if testConsumer.Count != testTimes {
+			t.Errorf("expected %d tries, got %d", testTimes, testConsumer.Count)
+		}
+	})
+
+	s.Run("aborts when the context deadline exceeded", func(t *testing.T) {
+		testConsumer := newCountingSaramaMessageConsumer(context.DeadlineExceeded)
+		c := &NTimesRetryingConsumer{
+			Times:    testTimes,
+			Consumer: testConsumer,
+		}
+		ctx := context.Background()
+		err := c.Consume(ctx, nil, nil)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Errorf("expected %s, got %v", context.DeadlineExceeded, err)
+		}
+		if testConsumer.Count >= testTimes {
+			t.Errorf("expected < %d tries, got %d", testTimes, testConsumer.Count)
+		}
+	})
+
+	s.Run("aborts when the context is canceled", func(t *testing.T) {
+		testConsumer := newCountingSaramaMessageConsumer(context.Canceled)
+		c := &NTimesRetryingConsumer{
+			Times:    testTimes,
+			Consumer: testConsumer,
+		}
+		ctx := context.Background()
+		err := c.Consume(ctx, nil, nil)
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected %s, got %v", context.Canceled, err)
+		}
+		if testConsumer.Count >= testTimes {
+			t.Errorf("expected < %d tries, got %d", testTimes, testConsumer.Count)
 		}
 	})
 }
@@ -95,17 +138,14 @@ func TestSaramaConsumerGroupHandler(s *testing.T) {
 // It uses a channel to know that the goroutine has seen some amount of CPU
 // time, which isn't guaranteed to alleviate the race of calling Start, but in
 // practice seems to be sufficient. Running with -count 10000 had 0 failures.
-func launchStart(ctx context.Context, t testing.TB, ec *SaramaAsyncEventsConsumer) {
+func launchStart(ctx context.Context, t testing.TB, ec *SaramaAsyncEventsConsumer) (err error) {
 	t.Helper()
-	launched := make(chan struct{}, 1)
-	t.Cleanup(func() { close(launched) })
+	runReturned := make(chan error)
 	go func() {
-		launched <- struct{}{}
-		if err := ec.Start(ctx); !errors.Is(err, nil) {
-			t.Errorf("expected Start() to return nil; got %v", err)
-		}
+		defer close(runReturned)
+		runReturned <- ec.Run(ctx)
 	}()
-	<-launched
+	return <-runReturned
 }
 
 // nullSaramaConsumerGroup is a null/no-op base from which to mock test behavior.
@@ -131,6 +171,15 @@ func (g *nullSaramaConsumerGroup) Consume(ctx context.Context, topics []string, 
 	return nil
 }
 
+type erroringSaramaConsumerGroup struct {
+	nullSaramaConsumerGroup
+	err error
+}
+
+func (g *erroringSaramaConsumerGroup) Consume(_ context.Context, _ []string, _ sarama.ConsumerGroupHandler) error {
+	return g.err
+}
+
 // nullSaramaConsumerGroupHandler is a no-op base from which to mock test
 // behavior.
 type nullSaramaConsumerGroupHandler struct {
@@ -151,6 +200,7 @@ func (h *nullSaramaConsumerGroupHandler) ConsumeClaim(_ sarama.ConsumerGroupSess
 type testSaramaConsumerGroupHandler struct {
 	*nullSaramaConsumerGroupHandler
 	consumed []*sarama.ConsumerMessage
+	err      error
 }
 
 func (h *testSaramaConsumerGroupHandler) ConsumeClaim(s sarama.ConsumerGroupSession, c sarama.ConsumerGroupClaim) error {
@@ -222,14 +272,37 @@ func (c *testSaramaConsumerGroupClaim) Messages() <-chan *sarama.ConsumerMessage
 
 type sleepingSaramaMessageConsumer struct {
 	sleepDuration time.Duration
+	consumeError  error
 }
 
 func (c *sleepingSaramaMessageConsumer) Consume(ctx context.Context,
-	session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage) error {
+	session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage) (err error) {
+	defer func(err *error) {
+		if err != nil {
+			c.consumeError = *err
+		}
+	}(&err)
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-time.After(c.sleepDuration):
 		return nil
 	}
+}
+
+type countingSaramaMessageConsumer struct {
+	err   error
+	Count int
+}
+
+func newCountingSaramaMessageConsumer(err error) *countingSaramaMessageConsumer {
+	return &countingSaramaMessageConsumer{
+		err: err,
+	}
+}
+
+func (c *countingSaramaMessageConsumer) Consume(ctx context.Context,
+	_ sarama.ConsumerGroupSession, _ *sarama.ConsumerMessage) error {
+	c.Count++
+	return c.err
 }

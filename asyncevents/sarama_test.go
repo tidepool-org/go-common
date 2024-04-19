@@ -131,6 +131,22 @@ func TestNTimesRetryingConsumer(s *testing.T) {
 			t.Errorf("expected < %d tries, got %d", testTimes, testConsumer.Count)
 		}
 	})
+
+	s.Run("doesn't retry on successful consumption", func(t *testing.T) {
+		testConsumer := newCountingSaramaMessageConsumer(nil)
+		c := &NTimesRetryingConsumer{
+			Times:    testTimes,
+			Consumer: testConsumer,
+		}
+		ctx := context.Background()
+		err := c.Consume(ctx, nil, nil)
+		if !errors.Is(err, nil) {
+			t.Errorf("expected nil error, got %v", err)
+		}
+		if testConsumer.Count != 1 {
+			t.Errorf("expected 1 try, got %d", testConsumer.Count)
+		}
+	})
 }
 
 // launchStart is a helper for calling Start in a goroutine.

@@ -4,10 +4,10 @@ TOOLS_BIN = tools/bin
 NPM_BIN = node_modules/.bin
 
 OAPI_CODEGEN = $(TOOLS_BIN)/oapi-codegen
-SWAGGER_CLI = $(NPM_BIN)/redocly
+SWAGGER_CLI = $(NPM_BIN)/swagger-cli
 
 NPM_PKG_SPECS = \
-	@redocly/cli@^1.11.0
+	@apidevtools/swagger-cli@^4.0.4
 
 ifeq ($(CI),)
 GO_BUILD_FLAGS =
@@ -38,7 +38,7 @@ generate: $(SWAGGER_CLI) $(OAPI_CODEGEN)
 	cd clients/summary && go generate ./...
 
 $(OAPI_CODEGEN):
-	GOBIN=$(shell pwd)/$(TOOLS_BIN) go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.1.0
+	GOBIN=$(shell pwd)/$(TOOLS_BIN) go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.3.0
 
 $(SWAGGER_CLI): npm-tools
 

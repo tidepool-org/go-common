@@ -4,10 +4,10 @@ TOOLS_BIN = tools/bin
 NPM_BIN = node_modules/.bin
 
 OAPI_CODEGEN = $(TOOLS_BIN)/oapi-codegen
-SWAGGER_CLI = $(NPM_BIN)/swagger-cli
+SWAGGER_CLI = $(NPM_BIN)/redocly
 
 NPM_PKG_SPECS = \
-	@apidevtools/swagger-cli@^4.0.4
+	@redocly/cli@^1.11.0
 
 ifeq ($(CI),)
 GO_BUILD_FLAGS =
@@ -32,13 +32,13 @@ test-cover:
 .PHONY: generate
 # Generates client api
 generate: $(SWAGGER_CLI) $(OAPI_CODEGEN)
-	$(SWAGGER_CLI) bundle ../TidepoolApi/reference/summary.v1.yaml -o ./spec/summary.v1.yaml -t yaml
+	$(SWAGGER_CLI) bundle ../TidepoolApi/reference/summary.v1.yaml -o ./spec/summary.v1.yaml --ext yaml
 	$(OAPI_CODEGEN) -package=api -generate=types spec/summary.v1.yaml > clients/summary/types.go
 	$(OAPI_CODEGEN) -package=api -generate=client spec/summary.v1.yaml > clients/summary/client.go
 	cd clients/summary && go generate ./...
 
 $(OAPI_CODEGEN):
-	GOBIN=$(shell pwd)/$(TOOLS_BIN) go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0
+	GOBIN=$(shell pwd)/$(TOOLS_BIN) go install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.1.0
 
 $(SWAGGER_CLI): npm-tools
 

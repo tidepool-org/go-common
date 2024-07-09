@@ -32,7 +32,7 @@ test-cover:
 .PHONY: generate
 # Generates client api
 generate: $(SWAGGER_CLI) $(OAPI_CODEGEN)
-	$(SWAGGER_CLI) bundle ../TidepoolApi/reference/summary.v1.yaml -o ./spec/summary.v1.yaml --ext yaml
+	$(SWAGGER_CLI) bundle ../TidepoolApi/reference/summary.v1.yaml -o ./spec/summary.v1.yaml -t yaml
 	$(OAPI_CODEGEN) -package=api -generate=types spec/summary.v1.yaml > clients/summary/types.go
 	$(OAPI_CODEGEN) -package=api -generate=client spec/summary.v1.yaml > clients/summary/client.go
 	cd clients/summary && go generate ./...

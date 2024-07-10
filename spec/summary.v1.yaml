@@ -78,6 +78,7 @@ components:
       enum:
         - cgm
         - bgm
+        - continuous
       description: Field which contains a summary type string.
       x-go-type: string
       x-go-type-skip-optional-pointer: true
@@ -215,6 +216,30 @@ components:
           type: number
           example: 5
           x-go-type: int
+        hasTimeInExtremeHighPercent:
+          type: boolean
+        timeInExtremeHighPercent:
+          description: Percentage of time spent in extreme high glucose range
+          type: number
+          example: 0.35
+          x-go-type: float64
+        timeInExtremeHighPercentDelta:
+          description: Difference between the timeInExtremeHighPercent in this period and version in the opposite offset
+          type: number
+          example: 0.2
+          x-go-type: float64
+        hasTimeInExtremeHighRecords:
+          type: boolean
+        timeInExtremeHighRecords:
+          description: Counter of records in extreme high glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInExtremeHighRecordsDelta:
+          description: Difference between the timeInExtremeHighRecords in this period and version in the opposite offset
+          type: number
+          example: 5
+          x-go-type: int
         hasTimeInAnyHighPercent:
           type: boolean
         timeInAnyHighPercent:
@@ -343,6 +368,8 @@ components:
         - hasTimeInHighRecords
         - hasTimeInVeryHighPercent
         - hasTimeInVeryHighRecords
+        - hasTimeInExtremeHighPercent
+        - hasTimeInExtremeHighRecords
         - hasTimeInLowPercent
         - hasTimeInLowRecords
         - hasTimeInVeryLowPercent
@@ -451,6 +478,11 @@ components:
           type: number
           example: 10
           x-go-type: int
+        totalVariance:
+          type: number
+          x-go-type: float64
+          description: Total variance of all glucose records
+          example: 1234.56
       required:
         - targetMinutes
         - targetRecords
@@ -465,6 +497,7 @@ components:
         - totalGlucose
         - totalMinutes
         - totalRecords
+        - totalVariance
     CGMPeriod:
       type: object
       title: cgmperiod.v1
@@ -599,6 +632,42 @@ components:
           x-go-type: int
         timeInVeryHighRecordsDelta:
           description: Difference between the timeInVeryHighRecords in this period and version in the opposite offset
+          type: number
+          example: 5
+          x-go-type: int
+        hasTimeInExtremeHighPercent:
+          type: boolean
+        timeInExtremeHighPercent:
+          description: Percentage of time spent in extreme high glucose range
+          type: number
+          example: 0.35
+          x-go-type: float64
+        timeInExtremeHighPercentDelta:
+          description: Difference between the timeInExtremeHighPercent in this period and version in the opposite offset
+          type: number
+          example: 0.2
+          x-go-type: float64
+        hasTimeInExtremeHighMinutes:
+          type: boolean
+        timeInExtremeHighMinutes:
+          description: Counter of minutes spent in extreme high glucose range
+          type: number
+          example: 200
+          x-go-type: int
+        timeInExtremeHighMinutesDelta:
+          description: Difference between the timeInExtremeHighMinutes in this period and version in the opposite offset
+          type: number
+          example: 5
+          x-go-type: int
+        hasTimeInExtremeHighRecords:
+          type: boolean
+        timeInExtremeHighRecords:
+          description: Counter of records in extreme high glucose range
+          type: number
+          example: 10
+          x-go-type: int
+        timeInExtremeHighRecordsDelta:
+          description: Difference between the timeInExtremeHighRecords in this period and version in the opposite offset
           type: number
           example: 5
           x-go-type: int
@@ -806,6 +875,38 @@ components:
           type: number
           example: 2.5
           x-go-type: float64
+        standardDeviation:
+          type: number
+          example: 2.5
+          x-go-type: float64
+        standardDeviationDelta:
+          type: number
+          example: 2.5
+          x-go-type: float64
+        coefficientOfVariation:
+          type: number
+          example: 2.5
+          x-go-type: float64
+        coefficientOfVariationDelta:
+          type: number
+          example: 2.5
+          x-go-type: float64
+        hoursWithData:
+          type: number
+          example: 2
+          x-go-type: int
+        hoursWithDataDelta:
+          type: number
+          example: 2
+          x-go-type: int
+        daysWithData:
+          type: number
+          example: 2
+          x-go-type: int
+        daysWithDataDelta:
+          type: number
+          example: 2
+          x-go-type: int
       required:
         - hasAverageGlucoseMmol
         - hasGlucoseManagementIndicator
@@ -818,6 +919,9 @@ components:
         - hasTimeInVeryHighPercent
         - hasTimeInVeryHighMinutes
         - hasTimeInVeryHighRecords
+        - hasTimeInExtremeHighPercent
+        - hasTimeInExtremeHighMinutes
+        - hasTimeInExtremeHighRecords
         - hasTimeInLowPercent
         - hasTimeInLowMinutes
         - hasTimeInLowRecords
@@ -835,6 +939,14 @@ components:
         - hasTimeCGMUseRecords
         - hasTotalRecords
         - hasAverageDailyRecords
+        - standardDeviation
+        - standardDeviationDelta
+        - coefficientOfVariation
+        - coefficientOfVariationDelta
+        - hoursWithData
+        - hoursWithDataDelta
+        - daysWithData
+        - daysWithDataDelta
     CGMPeriods:
       type: object
       title: cgmperiods.v1
@@ -863,6 +975,94 @@ components:
             $ref: '#/components/schemas/Bucket'
       required:
         - totalHours
+    ContinuousBucketData:
+      type: object
+      title: continuousbucketdata.v1
+      description: Series of counters which represent one hour of a users data
+      properties:
+        totalRecords:
+          description: Counter of records from continuous uploads
+          type: number
+          example: 10
+          x-go-type: int
+        realtimeRecords:
+          description: Counter of records uploaded within 24 hours of their timestamp
+          type: number
+          example: 10
+          x-go-type: int
+        deferredRecords:
+          description: Counter of records uploaded later than 24 hours of their timestamp
+          type: number
+          example: 10
+          x-go-type: int
+      required:
+        - totalRecords
+        - realtimeRecords
+        - deferredRecords
+    ContinuousPeriod:
+      type: object
+      title: continuousperiod.v1
+      description: 'Summary of a specific continuous upload time period (currently: 1d, 7d, 14d, 30d)'
+      properties:
+        totalRecords:
+          type: number
+          example: 5
+          x-go-type: int
+        averageDailyRecords:
+          type: number
+          example: 12.3
+          x-go-type: float64
+        realtimeRecords:
+          type: number
+          example: 5
+          x-go-type: int
+        realtimePercent:
+          type: number
+          example: 0.5
+          x-go-type: float64
+        deferredRecords:
+          type: number
+          example: 5
+          x-go-type: int
+        deferredPercent:
+          type: number
+          example: 0.5
+          x-go-type: float64
+      required:
+        - totalRecords
+        - averageDailyRecords
+        - realtimeRecords
+        - realtimePercent
+        - deferredRecords
+        - deferredPercent
+    ContinuousPeriods:
+      type: object
+      title: continuousperiods.v1
+      x-go-type-skip-optional-pointer: true
+      description: A map to each supported CGM summary period
+      additionalProperties:
+        $ref: '#/components/schemas/ContinuousPeriod'
+    ContinuousStats:
+      type: object
+      title: continuousstats.v1
+      description: A summary of a users recent CGM glucose values
+      properties:
+        totalHours:
+          description: Total hours represented in the hourly stats
+          type: number
+          x-go-type: int
+        periods:
+          $ref: '#/components/schemas/ContinuousPeriods'
+        offsetPeriods:
+          $ref: '#/components/schemas/ContinuousPeriods'
+        buckets:
+          type: array
+          x-go-type-skip-optional-pointer: true
+          description: Rotating list containing the stats for each currently tracked hour in order
+          items:
+            $ref: '#/components/schemas/Bucket'
+      required:
+        - totalHours
     Bucket:
       type: object
       title: bucket.v1
@@ -878,6 +1078,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/BGMBucketData'
             - $ref: '#/components/schemas/CGMBucketData'
+            - $ref: '#/components/schemas/ContinuousBucketData'
       required:
         - date
         - lateRecordTime
@@ -983,6 +1184,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/CGMStats'
             - $ref: '#/components/schemas/BGMStats'
+            - $ref: '#/components/schemas/ContinuousStats'
         updateWithoutChangeCount:
           type: number
           example: 5

@@ -7,6 +7,8 @@ import (
 	"log"
 	"log/slog"
 	"math"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -84,10 +86,14 @@ const (
 )
 
 // Setup implements sarama.ConsumerGroupHandler.
-func (h *SaramaConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error { return nil }
+func (h *SaramaConsumerGroupHandler) Setup(session sarama.ConsumerGroupSession) error {
+	return h.Consumer.Setup(session)
+}
 
 // Cleanup implements sarama.ConsumerGroupHandler.
-func (h *SaramaConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
+func (h *SaramaConsumerGroupHandler) Cleanup(session sarama.ConsumerGroupSession) error {
+	return h.Consumer.Cleanup(session)
+}
 
 // ConsumeClaim implements sarama.ConsumerGroupHandler.
 func (h *SaramaConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
@@ -120,6 +126,12 @@ type SaramaMessageConsumer interface {
 	// context is canceled, in which case the caller should retry, or mark the
 	// message as appropriate.
 	Consume(ctx context.Context, session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) error
+
+	// Setup rolls up to SaramaConsumerGroupHandler to implement [sarama.ConsumerGroupHandler].
+	Setup(session sarama.ConsumerGroupSession) error
+
+	// Cleanup rolls up to SaramaConsumerGroupHandler to implement [sarama.ConsumerGroupHandler].
+	Cleanup(session sarama.ConsumerGroupSession) error
 }
 
 var ErrRetriesLimitExceeded = errors.New("retry limit exceeded")
@@ -192,6 +204,13 @@ func (c *NTimesRetryingConsumer) Consume(ctx context.Context,
 	return errors.Join(joinedErrors, c.retryLimitError())
 }
 
+func (c *NTimesRetryingConsumer) Setup(session sarama.ConsumerGroupSession) error {
+	return c.Consumer.Setup(session)
+}
+func (c *NTimesRetryingConsumer) Cleanup(session sarama.ConsumerGroupSession) error {
+	return c.Consumer.Cleanup(session)
+}
+
 func (c *NTimesRetryingConsumer) isContextErr(err error) bool {
 	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
 }
@@ -232,4 +251,84 @@ func Fib(n int) int {
 	}
 
 	return n1
+}
+
+// TopicShiftingRetryingConsumer retries by moving failing messages between topics.
+type TopicShiftingRetryingConsumer struct {
+	// TopicSuffixSeparator allows calculation of the next topic.
+	TopicSuffixSeparator string
+	// TopicSuffixes of the retry process, in desired transition order.
+	TopicSuffixes []string
+	// Consumer processes messages, those that fail will be shifted.
+	Consumer SaramaMessageConsumer
+	// Producer shifts the failed messages to the next retry topic.
+	Producer sarama.AsyncProducer
+	// GroupID for the sarama consumer group.
+	GroupID string
+}
+
+func (c *TopicShiftingRetryingConsumer) Setup(session sarama.ConsumerGroupSession) error {
+	// TODO start retry topic consumers
+	// TODO ensure retry consumers are in "read committed" mode
+	return c.Consumer.Setup(session)
+}
+
+func (c *TopicShiftingRetryingConsumer) Cleanup(session sarama.ConsumerGroupSession) error {
+	// TODO stop retry topic consumers
+	return c.Consumer.Cleanup(session)
+}
+
+func (c *TopicShiftingRetryingConsumer) Consume(ctx context.Context,
+	session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) error {
+
+	err := c.Consumer.Consume(ctx, session, msg)
+	if err != nil {
+		if shiftErr := c.shiftMessage(msg); shiftErr != nil {
+			return errors.Join(err, shiftErr)
+		}
+		session.MarkMessage(msg, "")
+	}
+	return nil
+}
+
+func (c *TopicShiftingRetryingConsumer) shiftMessage(msg *sarama.ConsumerMessage) error {
+	nextTopic, nextErr := c.nextTopic(msg.Topic)
+	if nextErr != nil {
+		return fmt.Errorf("getting next topic: %s", nextErr)
+	}
+	if txnErr := c.Producer.BeginTxn(); txnErr != nil {
+		return fmt.Errorf("beginning transaction: %s", txnErr)
+	}
+	if txnErr := c.Producer.AddMessageToTxn(msg, c.GroupID, nil); txnErr != nil {
+		return fmt.Errorf("adding message to transaction: %s", txnErr)
+	}
+	pHeaders := make([]sarama.RecordHeader, len(msg.Headers))
+	for i := range msg.Headers {
+		pHeaders[i] = *msg.Headers[i]
+	}
+	pMsg := &sarama.ProducerMessage{
+		Topic:   nextTopic,
+		Key:     sarama.ByteEncoder(msg.Key),
+		Value:   sarama.ByteEncoder(msg.Value),
+		Headers: pHeaders,
+	}
+	c.Producer.Input() <- pMsg
+	if txnErr := c.Producer.CommitTxn(); txnErr != nil {
+		return fmt.Errorf("committing transaction: %s", txnErr)
+	}
+	return nil
+}
+
+func (c *TopicShiftingRetryingConsumer) nextTopic(topic string) (string, error) {
+	pieces := strings.Split(topic, c.TopicSuffixSeparator)
+	if len(pieces) < 2 {
+		return "", fmt.Errorf("no suffix found")
+	}
+	suffix := pieces[len(pieces)-1]
+	base, _ := strings.CutSuffix(topic, suffix)
+	index := slices.IndexFunc(c.TopicSuffixes, func(s string) bool { return s == suffix })
+	if index == -1 || index == len(c.TopicSuffixes)-1 {
+		return "", fmt.Errorf("no more suffixes")
+	}
+	return base + c.TopicSuffixSeparator + c.TopicSuffixes[index+1], nil
 }

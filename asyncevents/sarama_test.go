@@ -348,6 +348,14 @@ func (c *sleepingSaramaMessageConsumer) Consume(ctx context.Context,
 	}
 }
 
+func (c *sleepingSaramaMessageConsumer) Setup(_ sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (c *sleepingSaramaMessageConsumer) Cleanup(_ sarama.ConsumerGroupSession) error {
+	return nil
+}
+
 type countingSaramaMessageConsumer struct {
 	err   error
 	Count int
@@ -363,4 +371,12 @@ func (c *countingSaramaMessageConsumer) Consume(ctx context.Context,
 	_ sarama.ConsumerGroupSession, _ *sarama.ConsumerMessage) error {
 	c.Count++
 	return c.err
+}
+
+func (c *countingSaramaMessageConsumer) Setup(_ sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (c *countingSaramaMessageConsumer) Cleanup(_ sarama.ConsumerGroupSession) error {
+	return nil
 }

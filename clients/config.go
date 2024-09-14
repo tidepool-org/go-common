@@ -1,13 +1,12 @@
 package clients
 
 import (
-	"log"
-	"net/url"
-
 	"github.com/tidepool-org/go-common/clients/disc"
 	"github.com/tidepool-org/go-common/clients/hakken"
 	"github.com/tidepool-org/go-common/clients/highwater"
 	"github.com/tidepool-org/go-common/clients/shoreline"
+	"log"
+	"net/url"
 )
 
 type HostGetterConfig interface{}
@@ -36,7 +35,7 @@ func ToHostGetter(name string, c *HostGetterConfig, discovery disc.Discovery) di
 			return discovery.Watch(c["service"].(string)).Random()
 		}
 	default:
-		log.Panicf("Unexpected type for HostGetterConfig [%T]", c)
+		log.Panicf("Unexpected type for HostGetterConfig[%T]", c)
 	}
 
 	panic("Appease the compiler, code should never get here")

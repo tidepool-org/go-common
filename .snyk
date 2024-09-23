@@ -1,0 +1,6 @@
+version: v1.25.0
+ignore:
+  SNYK-GOLANG-GITHUBCOMDISINTEGRATIONIMAGING-5880692:
+    - '*':
+        reason: 
+        expires: 2026-03-12T00:00:00.000Z

@@ -68,6 +68,10 @@ func (c *CloudEventsMessageConsumer) handleCloudEvent(ce cloudevents.Event) {
 }
 
 func (c *CloudEventsMessageConsumer) sendToDeadLetterTopic(ce cloudevents.Event) {
+	if c.deadLetterProducer == nil {
+		log.Printf("No dead letter producer configured to handle event: %v\n", ce)
+		return
+	}
 	if err := c.deadLetterProducer.SendCloudEvent(context.Background(), ce); err != nil {
 		log.Printf("Failed to send event %v to dead-letter topic: %v", ce, err)
 	}

@@ -12,7 +12,7 @@ type (
 	SeagullMock struct{}
 )
 
-//A mock of the Gatekeeper interface
+// A mock of the Gatekeeper interface
 func NewGatekeeperMock(expectedPermissions Permissions, expectedError error) *GatekeeperMock {
 	return &GatekeeperMock{expectedPermissions, expectedError}
 }
@@ -45,7 +45,7 @@ func (mock *GatekeeperMock) SetPermissions(userID, groupID string, permissions P
 	return Permissions{userID: Allowed}, nil
 }
 
-//A mock of the Seagull interface
+// A mock of the Seagull interface
 func NewSeagullMock() *SeagullMock {
 	return &SeagullMock{}
 }

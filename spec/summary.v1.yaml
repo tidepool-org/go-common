@@ -295,6 +295,8 @@ components:
               type: number
               example: 3.5
               x-go-type: float64
+            delta:
+              $ref: '#/components/schemas/glucoseperiod.v5'
           required:
             - hoursWithData
             - daysWithData

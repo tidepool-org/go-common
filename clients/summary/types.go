@@ -102,6 +102,9 @@ type GlucoseperiodV5 struct {
 	CoefficientOfVariation float64 `json:"coefficientOfVariation"`
 	DaysWithData           int     `json:"daysWithData"`
 
+	// Delta Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
+	Delta *GlucoseperiodV5 `json:"delta,omitempty"`
+
 	// GlucoseManagementIndicator A derived value which emulates A1C
 	GlucoseManagementIndicator float64 `json:"glucoseManagementIndicator"`
 	HoursWithData              int     `json:"hoursWithData"`

@@ -2,11 +2,13 @@ package events
 
 import (
 	"context"
+	stdErrs "errors"
 	"fmt"
-	"github.com/IBM/sarama"
-	"github.com/tidepool-org/go-common/errors"
 	"log"
 	"sync"
+
+	"github.com/IBM/sarama"
+	"github.com/tidepool-org/go-common/errors"
 )
 
 var ErrConsumerStopped = errors.New("consumer has been stopped")
@@ -134,6 +136,9 @@ func (s *SaramaConsumerGroup) initialize() error {
 		s.config.KafkaConsumerGroup,
 		s.config.SaramaConfig,
 	)
+	if stdErrs.Is(err, sarama.ErrUnknownTopicOrPartition) {
+		return fmt.Errorf(`%w: topic "%s"`, err, s.topic)
+	}
 	if err != nil {
 		return err
 	}

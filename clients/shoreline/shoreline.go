@@ -35,6 +35,7 @@ type Client interface {
 	GetUser(userID, token string) (*UserData, error)
 	UpdateUser(userID string, userUpdate UserUpdate, token string) error
 	CreateCustodialUserForClinic(clinicId string, userData CustodialUserData, token string) (*UserData, error)
+	CreateCustodialUserForCaregiver(caregiverId string, userData CustodialUserData, token string) (*UserData, error)
 	DeleteUserSessions(userID, token string) error
 }
 
@@ -448,6 +449,24 @@ func (client *ShorelineClient) CreateCustodialUserForClinic(clinicId string, use
 
 	host.Path = path.Join(host.Path, "v1", "clinics", clinicId, "users")
 
+	return client.createCustodialUser(host, http.MethodPost, userData, token)
+}
+
+func (client *ShorelineClient) CreateCustodialUserForCaregiver(caregiverId string, userData CustodialUserData, token string) (*UserData, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known user-api hosts.")
+	}
+	if caregiverId == "" {
+		return nil, errors.New("caregiver id is missing")
+	}
+
+	host.Path = path.Join(host.Path, "user", caregiverId, "user")
+
+	return client.createCustodialUser(host, http.MethodPost, userData, token)
+}
+
+func (client *ShorelineClient) createCustodialUser(host *url.URL, method string, userData CustodialUserData, token string) (*UserData, error) {
 	type request struct {
 		Username *string  `json:"username,omitempty"`
 		Emails   []string `json:"emails,omitempty"`
@@ -462,7 +481,10 @@ func (client *ShorelineClient) CreateCustodialUserForClinic(clinicId string, use
 	if jsonUser, err := json.Marshal(payload); err != nil {
 		return nil, fmt.Errorf("unable to marshal payload: %w", err)
 	} else {
-		req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(jsonUser))
+		req, err := http.NewRequest(method, host.String(), bytes.NewBuffer(jsonUser))
+		if err != nil {
+			return nil, fmt.Errorf("unable to create request: %w", err)
+		}
 		req.Header.Add("x-tidepool-session-token", token)
 
 		res, err := client.httpClient.Do(req)

@@ -27,8 +27,8 @@ func TestMock(t *testing.T) {
 	client.PostWithUser(USERID, EVENT_NAME, TOKEN, p)
 }
 
-//log.Panic is called when not all required args are passed.
-//This test fails if the panic and subseqent recover are not called
+// log.Panic is called when not all required args are passed.
+// This test fails if the panic and subseqent recover are not called
 func TestMock_Fails(t *testing.T) {
 
 	defer func() {

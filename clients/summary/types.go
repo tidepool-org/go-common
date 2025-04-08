@@ -103,7 +103,50 @@ type GlucoseperiodV5 struct {
 	DaysWithData           int     `json:"daysWithData"`
 
 	// Delta Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	Delta *GlucoseperiodV5 `json:"delta,omitempty"`
+	Delta *GlucoseperioddeltaV5 `json:"delta,omitempty"`
+
+	// GlucoseManagementIndicator A derived value which emulates A1C
+	GlucoseManagementIndicator float64 `json:"glucoseManagementIndicator"`
+	HoursWithData              int     `json:"hoursWithData"`
+
+	// InAnyHigh Metrics for a particular range of glucose values
+	InAnyHigh GlucoserangeV5 `json:"inAnyHigh,omitempty"`
+
+	// InAnyLow Metrics for a particular range of glucose values
+	InAnyLow GlucoserangeV5 `json:"inAnyLow,omitempty"`
+
+	// InExtremeHigh Metrics for a particular range of glucose values
+	InExtremeHigh GlucoserangeV5 `json:"inExtremeHigh,omitempty"`
+
+	// InHigh Metrics for a particular range of glucose values
+	InHigh GlucoserangeV5 `json:"inHigh,omitempty"`
+
+	// InLow Metrics for a particular range of glucose values
+	InLow GlucoserangeV5 `json:"inLow,omitempty"`
+
+	// InTarget Metrics for a particular range of glucose values
+	InTarget GlucoserangeV5 `json:"inTarget,omitempty"`
+
+	// InVeryHigh Metrics for a particular range of glucose values
+	InVeryHigh GlucoserangeV5 `json:"inVeryHigh,omitempty"`
+
+	// InVeryLow Metrics for a particular range of glucose values
+	InVeryLow         GlucoserangeV5 `json:"inVeryLow,omitempty"`
+	StandardDeviation float64        `json:"standardDeviation"`
+
+	// Total Metrics for a particular range of glucose values
+	Total GlucoserangeV5 `json:"total,omitempty"`
+}
+
+// GlucoseperioddeltaV5 defines model for glucoseperioddelta.v5.
+type GlucoseperioddeltaV5 struct {
+	// AverageDailyRecords Average daily readings
+	AverageDailyRecords float64 `json:"averageDailyRecords"`
+
+	// AverageGlucoseMmol Average Glucose of records in this period
+	AverageGlucoseMmol     float64 `json:"averageGlucoseMmol"`
+	CoefficientOfVariation float64 `json:"coefficientOfVariation"`
+	DaysWithData           int     `json:"daysWithData"`
 
 	// GlucoseManagementIndicator A derived value which emulates A1C
 	GlucoseManagementIndicator float64 `json:"glucoseManagementIndicator"`

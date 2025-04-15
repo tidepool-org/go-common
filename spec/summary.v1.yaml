@@ -110,6 +110,15 @@ components:
       description: String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
       readOnly: true
       x-go-type: string
+    summaryId.v1:
+      title: Summary ID
+      description: Summary Unique Identifier
+      type: string
+      minLength: 24
+      maxLength: 24
+      pattern: ^[a-f0-9]{24}$
+      readOnly: true
+      example: 2fe2488217ee43e1b2e83c2f
     config.v1:
       type: object
       title: config.v1
@@ -190,6 +199,8 @@ components:
       title: summarybase.v5
       description: shared properties of all summaries
       properties:
+        id:
+          $ref: '#/components/schemas/summaryId.v1'
         type:
           $ref: '#/components/schemas/summarytype.v5'
         userId:

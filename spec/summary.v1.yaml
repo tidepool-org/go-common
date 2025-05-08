@@ -243,6 +243,7 @@ components:
       description: 'Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)'
       allOf:
         - $ref: '#/components/schemas/glucoseRanges.v5'
+        - $ref: '#/components/schemas/glucoseMinMax.v5'
         - type: object
           properties:
             hoursWithData:
@@ -293,6 +294,7 @@ components:
       description: 'Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)'
       allOf:
         - $ref: '#/components/schemas/glucoseRanges.v5'
+        - $ref: '#/components/schemas/glucoseMinMax.v5'
         - type: object
           properties:
             hoursWithData:
@@ -396,6 +398,22 @@ components:
           $ref: '#/components/schemas/summaryConfig.v1'
         dates:
           $ref: '#/components/schemas/summaryDates.v5'
+    glucoseMinMax.v5:
+      type: object
+      title: glucoseminmax.v5
+      description: minimum and maximum glucose values
+      properties:
+        min:
+          type: number
+          example: 3
+          x-go-type: float64
+        max:
+          type: number
+          example: 8
+          x-go-type: float64
+      required:
+        - min
+        - max
   securitySchemes:
     sessionToken:
       description: Tidepool Session Token

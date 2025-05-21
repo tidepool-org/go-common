@@ -195,7 +195,7 @@ type ClientWithResponsesInterface interface {
 type GetSummaryResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Summary
+	JSON200      *SummaryV5
 }
 
 // Status returns HTTPResponse.Status
@@ -238,7 +238,7 @@ func ParseGetSummaryResponse(rsp *http.Response) (*GetSummaryResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Summary
+		var dest SummaryV5
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

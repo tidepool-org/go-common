@@ -7,7 +7,7 @@ OAPI_CODEGEN = $(TOOLS_BIN)/oapi-codegen
 REDOCLY_CLI = $(NPM_BIN)/redocly
 
 NPM_PKG_SPECS = \
-	@redocly/cli@1.34.1
+	@redocly/cli@1.34.3
 
 ifeq ($(CI),)
 GO_BUILD_FLAGS =

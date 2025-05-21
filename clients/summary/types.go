@@ -235,7 +235,10 @@ type SummaryV5 struct {
 	Config ConfigV1 `json:"config,omitempty"`
 
 	// Dates dates tracked for summary calculation
-	Dates   DatesV5            `json:"dates,omitempty"`
+	Dates DatesV5 `json:"dates,omitempty"`
+
+	// Id Summary Unique Identifier
+	Id      *SummaryIdV1       `json:"id,omitempty"`
 	Periods *SummaryV5_Periods `json:"periods,omitempty"`
 
 	// Type Field which contains a summary type string.
@@ -250,6 +253,9 @@ type SummaryV5_Periods struct {
 	union json.RawMessage
 }
 
+// SummaryIdV1 Summary Unique Identifier
+type SummaryIdV1 = string
+
 // SummarybaseV5 shared properties of all summaries
 type SummarybaseV5 struct {
 	// Config Summary schema version and calculation configuration
@@ -257,6 +263,9 @@ type SummarybaseV5 struct {
 
 	// Dates dates tracked for summary calculation
 	Dates DatesV5 `json:"dates,omitempty"`
+
+	// Id Summary Unique Identifier
+	Id *SummaryIdV1 `json:"id,omitempty"`
 
 	// Type Field which contains a summary type string.
 	Type SummarytypeV5 `json:"type,omitempty"`

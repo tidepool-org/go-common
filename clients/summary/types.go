@@ -52,8 +52,10 @@ type ContinuousRangesV5 struct {
 
 // GlucoseMinMaxV5 minimum and maximum glucose values
 type GlucoseMinMaxV5 struct {
-	Max float64 `json:"max"`
-	Min float64 `json:"min"`
+	Max      float64 `json:"max"`
+	MaxDelta float64 `json:"maxDelta"`
+	Min      float64 `json:"min"`
+	MinDelta float64 `json:"minDelta"`
 }
 
 // GlucosePeriodV5 defines model for glucosePeriod.v5.
@@ -97,7 +99,9 @@ type GlucosePeriodV5 struct {
 	// InVeryLow Metrics for a particular range of glucose values
 	InVeryLow         GlucoseRangeV5 `json:"inVeryLow,omitempty"`
 	Max               float64        `json:"max"`
+	MaxDelta          float64        `json:"maxDelta"`
 	Min               float64        `json:"min"`
+	MinDelta          float64        `json:"minDelta"`
 	StandardDeviation float64        `json:"standardDeviation"`
 
 	// Total Metrics for a particular range of glucose values
@@ -141,6 +145,10 @@ type GlucosePeriodDeltaV5 struct {
 
 	// InVeryLow Metrics for a particular range of glucose values
 	InVeryLow         GlucoseRangeV5 `json:"inVeryLow,omitempty"`
+	Max               float64        `json:"max"`
+	MaxDelta          float64        `json:"maxDelta"`
+	Min               float64        `json:"min"`
+	MinDelta          float64        `json:"minDelta"`
 	StandardDeviation float64        `json:"standardDeviation"`
 
 	// Total Metrics for a particular range of glucose values

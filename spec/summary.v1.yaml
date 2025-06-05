@@ -265,12 +265,40 @@ components:
           $ref: '#/components/schemas/glucoseRange.v5'
         inAnyHigh:
           $ref: '#/components/schemas/glucoseRange.v5'
+    glucoseMinMax.v5:
+      type: object
+      title: glucoseminmax.v5
+      description: minimum and maximum glucose values
+      properties:
+        min:
+          type: number
+          example: 3
+          x-go-type: float64
+        minDelta:
+          type: number
+          example: 3
+          x-go-type: float64
+        max:
+          type: number
+          example: 8
+          x-go-type: float64
+        maxDelta:
+          type: number
+          example: 8
+          x-go-type: float64
+      x-go-type-skip-optional-pointer: true
+      required:
+        - min
+        - minDelta
+        - max
+        - maxDelta
     glucosePeriodDelta.v5:
       type: object
       title: glucoseperiod.v5
       description: 'Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)'
       allOf:
         - $ref: '#/components/schemas/glucoseRanges.v5'
+        - $ref: '#/components/schemas/glucoseMinMax.v5'
         - type: object
           properties:
             hoursWithData:
@@ -319,6 +347,7 @@ components:
       description: 'Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)'
       allOf:
         - $ref: '#/components/schemas/glucoseRanges.v5'
+        - $ref: '#/components/schemas/glucoseMinMax.v5'
         - type: object
           properties:
             hoursWithData:

@@ -11,29 +11,29 @@ import (
 	"github.com/IBM/sarama"
 )
 
-// SaramaEventsConsumer consumes Kafka messages for asynchronous event
+// SaramaConsumerGroupManager manages a consumer group for asynchronous Kafka event
 // handling.
-type SaramaEventsConsumer struct {
+type SaramaConsumerGroupManager struct {
 	Handler       sarama.ConsumerGroupHandler
 	ConsumerGroup sarama.ConsumerGroup
 	Topics        []string
 }
 
-func NewSaramaEventsConsumer(consumerGroup sarama.ConsumerGroup,
-	handler sarama.ConsumerGroupHandler, topics ...string) *SaramaEventsConsumer {
+func NewSaramaConsumerGroupManager(consumerGroup sarama.ConsumerGroup,
+	handler sarama.ConsumerGroupHandler, topics ...string) *SaramaConsumerGroupManager {
 
-	return &SaramaEventsConsumer{
+	return &SaramaConsumerGroupManager{
 		ConsumerGroup: consumerGroup,
 		Handler:       handler,
 		Topics:        topics,
 	}
 }
 
-// Run the consumer, to begin consuming Kafka messages.
+// Run the manager, to begin consuming Kafka messages.
 //
 // Run is stopped by its context being canceled. When its context is canceled,
 // it returns nil.
-func (p *SaramaEventsConsumer) Run(ctx context.Context) (err error) {
+func (p *SaramaConsumerGroupManager) Run(ctx context.Context) (err error) {
 	for {
 		err := p.ConsumerGroup.Consume(ctx, p.Topics, p.Handler)
 		if err != nil {
@@ -114,9 +114,9 @@ func (h *SaramaConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSe
 // Close implements sarama.ConsumerGroupHandler.
 func (h *SaramaConsumerGroupHandler) Close() error { return nil }
 
-// SaramaMessageConsumer processes Kafka messages.
+// SaramaMessageConsumer is responsible for the processing of Kafka messages.
 type SaramaMessageConsumer interface {
-	// Consume should process a message.
+	// Consume processes a message.
 	//
 	// Consume is responsible for marking the message consumed, unless the
 	// context is canceled, in which case the caller should retry, or mark the
@@ -126,14 +126,11 @@ type SaramaMessageConsumer interface {
 
 var ErrRetriesLimitExceeded = errors.New("retry limit exceeded")
 
-// NTimesRetryingConsumer enhances a SaramaMessageConsumer with a finite
-// number of immediate retries.
+// NTimesRetryingConsumer is a SaramaMessageConsumer with a finite number of retries.
 //
 // The delay between each retry can be controlled via the Delay property. If
 // no Delay property is specified, a delay based on the Fibonacci sequence is
 // used.
-//
-// Logger is intentionally minimal. The slog.Log function is used by default.
 type NTimesRetryingConsumer struct {
 	Times    int
 	Consumer SaramaMessageConsumer
@@ -148,6 +145,7 @@ type Logger interface {
 	Log(ctx context.Context, level slog.Level, msg string, args ...any)
 }
 
+// Consume implements SaramaMessageConsumer.
 func (c *NTimesRetryingConsumer) Consume(ctx context.Context,
 	session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage) (err error) {
 

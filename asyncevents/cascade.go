@@ -5,175 +5,198 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/IBM/sarama"
 	"log/slog"
 	"os"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/IBM/sarama"
 )
 
-// SaramaRunner interfaces between [events.Runner] and go-common's
-// [SaramaEventsConsumer].
+// CascadingSaramaMessageConsumer cascades messages that failed to be consumed to another
+// topic. It is an implementation of [SaramaMessageConsumer].
 //
-// This means providing Initialize(), Run(), and Terminate() to satisfy events.Runner, while
-// under the hood calling SaramaEventConsumer's Run(), and canceling its Context as
-// appropriate.
-type SaramaRunner struct {
-	eventsRunner SaramaEventsRunner
-	cancelCtx    context.CancelFunc
-	cancelMu     sync.Mutex
+// It also sets an adjustable delay via the "not-before" and "failures" headers so that as
+// the message moves from topic to topic, the time between processing is increased according
+// to [FailuresToDelay].
+type CascadingSaramaMessageConsumer struct {
+	Consumer  SaramaMessageConsumer
+	NextTopic string
+	Producer  LimitedAsyncProducer
+	Logger    Logger
 }
 
-func NewSaramaRunner(eventsRunner SaramaEventsRunner) *SaramaRunner {
-	return &SaramaRunner{
-		eventsRunner: eventsRunner,
-	}
-}
+// Consume implements [SaramaMessageConsumer].
+func (c *CascadingSaramaMessageConsumer) Consume(ctx context.Context,
+	session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) (err error) {
 
-// SaramaEventsRunner is implemented by go-common's [SaramaEventsRunner].
-type SaramaEventsRunner interface {
-	Run(ctx context.Context) error
-}
-
-// SaramaRunnerConfig collects values needed to initialize a SaramaRunner.
-//
-// This provides isolation for the SaramaRunner from ConfigReporter,
-// envconfig, or any of the other options in platform for reading config
-// values.
-type SaramaRunnerConfig struct {
-	Brokers         []string
-	GroupID         string
-	Topics          []string
-	MessageConsumer SaramaMessageConsumer
-
-	Sarama *sarama.Config
-}
-
-func (r *SaramaRunner) Initialize() error { return nil }
-
-// Run adapts platform's event.Runner to work with go-common's
-// SaramaEventsConsumer.
-func (r *SaramaRunner) Run() error {
-	if r.eventsRunner == nil {
-		return errors.New("unable to run SaramaRunner, eventsRunner is nil")
-	}
-
-	r.cancelMu.Lock()
-	ctx, err := func() (context.Context, error) {
-		defer r.cancelMu.Unlock()
-		if r.cancelCtx != nil {
-			return nil, errors.New("unable to Run SaramaRunner, it's already initialized")
+	if err := c.Consumer.Consume(ctx, session, msg); err != nil {
+		txnErr := c.withTxn(ctx, func() error {
+			select {
+			case <-ctx.Done():
+				if ctxErr := ctx.Err(); !errors.Is(ctxErr, context.Canceled) {
+					return ctxErr
+				}
+				return nil
+			case c.Producer.Input() <- c.cascadeMessage(ctx, msg):
+				c.Logger.Log(ctx, slog.LevelInfo, "cascaded", "from", msg.Topic, "to", c.NextTopic)
+				return nil
+			}
+		})
+		if txnErr != nil {
+			c.Logger.Log(ctx, slog.LevelInfo, "Unable to complete cascading transaction", "error", err)
+			return err
 		}
-		var ctx context.Context
-		ctx, r.cancelCtx = context.WithCancel(context.Background())
-		return ctx, nil
-	}()
-	if err != nil {
-		return err
-	}
-	if err := r.eventsRunner.Run(ctx); err != nil {
-		return fmt.Errorf("unable to Run SaramaRunner: %w", err)
 	}
 	return nil
 }
 
-// Terminate adapts platform's event.Runner to work with go-common's
-// SaramaEventsConsumer.
-func (r *SaramaRunner) Terminate() error {
-	r.cancelMu.Lock()
-	defer r.cancelMu.Unlock()
-	if r.cancelCtx == nil {
-		return errors.New("unable to Terminate SaramaRunner, it's not running")
+// withTxn wraps a function with a transaction that is aborted if an error is returned.
+func (c *CascadingSaramaMessageConsumer) withTxn(ctx context.Context, f func() error) (err error) {
+	if err := c.Producer.BeginTxn(); err != nil {
+		return fmt.Errorf("unable to begin transaction: %w", err)
 	}
-	r.cancelCtx()
-	return nil
-}
-
-// CappedExponentialBinaryDelay builds delay functions that use exponential
-// binary backoff with a maximum duration.
-func CappedExponentialBinaryDelay(cap time.Duration) func(int) time.Duration {
-	return func(tries int) time.Duration {
-		b := DelayExponentialBinary(tries)
-		if b > cap {
-			return cap
+	defer func(err *error) {
+		if err != nil && *err != nil {
+			if abortErr := c.Producer.AbortTxn(); abortErr != nil {
+				c.Logger.Log(ctx, slog.LevelInfo, "Unable to abort transaction", "error", abortErr)
+			}
+			return
 		}
-		return b
+		if commitErr := c.Producer.CommitTxn(); commitErr != nil {
+			c.Logger.Log(ctx, slog.LevelInfo, "Unable to commit transaction", "error", commitErr)
+		}
+	}(&err)
+	return f()
+}
+
+// cascadeMessage to the next topic.
+func (c *CascadingSaramaMessageConsumer) cascadeMessage(ctx context.Context,
+	msg *sarama.ConsumerMessage) *sarama.ProducerMessage {
+
+	pHeaders := make([]sarama.RecordHeader, len(msg.Headers))
+	for idx, header := range msg.Headers {
+		pHeaders[idx] = *header
+	}
+	return &sarama.ProducerMessage{
+		Key:     sarama.ByteEncoder(msg.Key),
+		Value:   sarama.ByteEncoder(msg.Value),
+		Topic:   c.NextTopic,
+		Headers: c.updateCascadeHeaders(ctx, pHeaders),
 	}
 }
 
-// CascadingSaramaEventsRunner manages multiple sarama consumer groups to execute a
-// topic-cascading retry process.
+// updateCascadeHeaders calculates not before and failures header values.
 //
-// The topic names are generated from Config.Topics combined with Delays. If given a single
-// topic "updates", and delays: 0s, 1s, and 5s, then the following topics will be consumed:
-// updates, updates-retry-1s, updates-retry-5s. The consumer of the updates-retry-5s topic
-// will write failed messages to updates-dead.
-//
-// The inspiration for this system was drawn from
-// https://www.uber.com/blog/reliable-reprocessing/
-type CascadingSaramaEventsRunner struct {
-	Config             SaramaRunnerConfig
+// Existing not before and failures headers will be dropped in place of the new ones.
+func (c *CascadingSaramaMessageConsumer) updateCascadeHeaders(ctx context.Context,
+	headers []sarama.RecordHeader) []sarama.RecordHeader {
+
+	failures := 0
+	notBefore := time.Now()
+
+	keep := make([]sarama.RecordHeader, 0, len(headers))
+	for _, header := range headers {
+		switch {
+		case bytes.Equal(header.Key, HeaderNotBefore):
+			continue // Drop this header, we'll add a new version below.
+		case bytes.Equal(header.Key, HeaderFailures):
+			parsed, err := strconv.ParseInt(string(header.Value), 10, 32)
+			if err != nil {
+				c.Logger.Log(ctx, slog.LevelInfo, "Unable to parse consumption failures count", "error", err)
+			} else {
+				failures = int(parsed)
+				notBefore = notBefore.Add(FailuresToDelay[failures])
+			}
+			continue // Drop this header, we'll add a new version below.
+		}
+		keep = append(keep, header)
+	}
+
+	keep = append(keep, sarama.RecordHeader{
+		Key:   HeaderNotBefore,
+		Value: []byte(notBefore.Format(NotBeforeTimeFormat)),
+	})
+	keep = append(keep, sarama.RecordHeader{
+		Key:   HeaderFailures,
+		Value: []byte(strconv.Itoa(failures + 1)),
+	})
+
+	return keep
+}
+
+// CascadingSaramaEventsManagerConfig for a [CascadingSaramaEventsManager].
+type CascadingSaramaEventsManagerConfig struct {
+	Consumer SaramaMessageConsumer
+
+	Brokers            []string
+	GroupID            string
+	Topics             []string
 	ConsumptionTimeout time.Duration
 	Delays             []time.Duration
 	Logger             Logger
 	SaramaBuilders     SaramaBuilders
+	Sarama             *sarama.Config
 }
 
-func NewCascadingSaramaEventsRunner(config SaramaRunnerConfig, logger Logger,
-	delays []time.Duration, consumptionTimeout time.Duration) *CascadingSaramaEventsRunner {
+// CascadingSaramaEventsManager manages multiple Sarama consumer groups to execute a
+// topic-cascading retry process. It coordinates multiple [SaramaConsumerGroupManager]
+// instances to achieve this.
+//
+// The topics' names are generated from a combination of the configured topics and
+// configured delays. For example, if configured with a topic "updates", and delays: 0s, 1s,
+// and 5s, then the following topics will be consumed: updates, updates-retry-1s,
+// updates-retry-5s. The consumer of the updates-retry-5s topic will write failed messages
+// to updates-dead.
+//
+// The inspiration for this system was drawn from
+// https://www.uber.com/blog/reliable-reprocessing/
+type CascadingSaramaEventsManager struct {
+	CascadingSaramaEventsManagerConfig
+}
 
-	return &CascadingSaramaEventsRunner{
-		Config:             config,
-		Delays:             delays,
-		Logger:             logger,
-		SaramaBuilders:     DefaultSaramaBuilders{},
-		ConsumptionTimeout: consumptionTimeout,
+func NewCascadingSaramaEventsManager(config CascadingSaramaEventsManagerConfig) *CascadingSaramaEventsManager {
+	if config.SaramaBuilders == nil {
+		config.SaramaBuilders = &DefaultSaramaBuilders{}
+	}
+	return &CascadingSaramaEventsManager{
+		CascadingSaramaEventsManagerConfig: config,
 	}
 }
 
-// LimitedAsyncProducer restricts the [sarama.AsyncProducer] interface to ensure that its
-// recipient isn't able to call Close(), thereby opening the potential for a panic when
-// writing to a closed channel.
-type LimitedAsyncProducer interface {
-	AbortTxn() error
-	BeginTxn() error
-	CommitTxn() error
-	Input() chan<- *sarama.ProducerMessage
-}
-
-func (r *CascadingSaramaEventsRunner) Run(ctx context.Context) error {
-	if len(r.Config.Topics) == 0 {
+func (c *CascadingSaramaEventsManager) Run(ctx context.Context) error {
+	if len(c.Topics) == 0 {
 		return errors.New("no topics")
 	}
-	if len(r.Delays) == 0 {
+	if len(c.Delays) == 0 {
 		return errors.New("no delays")
 	}
 
 	producersCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
-	errs := make(chan error, len(r.Config.Topics)*len(r.Delays))
+	errs := make(chan error, len(c.Topics)*len(c.Delays))
 	defer func() {
-		r.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsRunner: waiting for consumers")
+		c.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsManager: waiting for managers")
 		wg.Wait()
-		r.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsRunner: all consumers returned")
+		c.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsManager: all managers returned")
 		close(errs)
 	}()
 
-	for _, topic := range r.Config.Topics {
-		for idx, delay := range r.Delays {
-			producerCfg := r.producerConfig(idx, delay)
-			// The producer is built here rather than in buildConsumer() to control when
-			// producer is closed. Were the producer to be closed before consumer.Run()
-			// returns, it would be possible for consumer to write to the producer's
+	for _, topic := range c.Topics {
+		for idx, delay := range c.Delays {
+			producerCfg := c.producerConfig(idx, delay)
+			// The producer is built here rather than in buildManager() to control when
+			// producer is closed. Were the producer to be closed before manager.Run()
+			// returns, it would be possible for manager to write to the producer's
 			// Inputs() channel, which if closed, would cause a panic.
-			producer, err := r.SaramaBuilders.NewAsyncProducer(r.Config.Brokers, producerCfg)
+			producer, err := c.SaramaBuilders.NewAsyncProducer(c.Brokers, producerCfg)
 			if err != nil {
-				return fmt.Errorf("unable to build async producer %s: %w", r.Config.GroupID, err)
+				return fmt.Errorf("unable to build async producer %s: %w", c.GroupID, err)
 			}
 
-			consumer, err := r.buildConsumer(producersCtx, idx, producer, delay, topic)
+			manager, err := c.buildManager(producersCtx, idx, producer, delay, topic)
 			if err != nil {
 				return err
 			}
@@ -183,35 +206,35 @@ func (r *CascadingSaramaEventsRunner) Run(ctx context.Context) error {
 				defer func() {
 					closeErr := producer.Close()
 					if closeErr != nil {
-						r.Logger.Log(producersCtx, slog.LevelInfo, "CascadingSaramaEventsRunner: unable to close producer", "error", closeErr)
+						c.Logger.Log(producersCtx, slog.LevelInfo, "CascadingSaramaEventsManager: unable to close producer", "error", closeErr)
 					}
 					wg.Done()
 				}()
-				if err := consumer.Run(producersCtx); err != nil {
+				if err := manager.Run(producersCtx); err != nil {
 					errs <- fmt.Errorf("topics[%q]: %s", topic, err)
 				}
-				r.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsRunner: consumer go proc returning", "topic", topic)
+				c.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsManager: manager go proc returning", "topic", topic)
 			}(topic)
 		}
 	}
 
 	select {
 	case <-ctx.Done():
-		r.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsRunner: context is done")
+		c.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsManager: context is done")
 		return nil
 	case err := <-errs:
-		r.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsRunner: Run(): error from consumer", "error", err)
+		c.Logger.Log(ctx, slog.LevelDebug, "CascadingSaramaEventsManager: Run(): error from manager", "error", err)
 		return err
 	}
 }
 
-func (r *CascadingSaramaEventsRunner) producerConfig(idx int, delay time.Duration) *sarama.Config {
-	uniqueConfig := *r.Config.Sarama
+func (c *CascadingSaramaEventsManager) producerConfig(idx int, delay time.Duration) *sarama.Config {
+	uniqueConfig := *c.Sarama
 	hostID := os.Getenv("HOSTNAME") // set by default in kubernetes pods
 	if hostID == "" {
 		hostID = fmt.Sprintf("%d-%d", time.Now().UnixNano()/int64(time.Second), os.Getpid())
 	}
-	txnID := fmt.Sprintf("%s-%s-%d-%s", r.Config.GroupID, delay.String(), idx, hostID)
+	txnID := fmt.Sprintf("%s-%s-%d-%s", c.GroupID, delay.String(), idx, hostID)
 	uniqueConfig.Producer.Transaction.ID = txnID
 	uniqueConfig.Producer.Idempotent = true
 	uniqueConfig.Producer.RequiredAcks = sarama.WaitForAll
@@ -241,48 +264,50 @@ func (DefaultSaramaBuilders) NewConsumerGroup(brokers []string, groupID string,
 	return sarama.NewConsumerGroup(brokers, groupID, config)
 }
 
-func (r *CascadingSaramaEventsRunner) buildConsumer(ctx context.Context, idx int,
+// buildManager returns a [SaramaConsumerGroupManager] that manages multiple, composed,
+// [SaramaMessageConsumer]s according to its topics and delays configuration.
+func (c *CascadingSaramaEventsManager) buildManager(ctx context.Context, idx int,
 	producer LimitedAsyncProducer, delay time.Duration, baseTopic string) (
-	*SaramaEventsConsumer, error) {
+	*SaramaConsumerGroupManager, error) {
 
-	groupID := r.Config.GroupID
+	groupID := c.GroupID
 	if delay > 0 {
 		groupID += "-retry-" + delay.String()
 	}
-	group, err := r.SaramaBuilders.NewConsumerGroup(r.Config.Brokers, groupID,
-		r.Config.Sarama)
+	group, err := c.SaramaBuilders.NewConsumerGroup(c.Brokers, groupID,
+		c.Sarama)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build sarama consumer group %s: %w", groupID, err)
 	}
 
-	var consumer = r.Config.MessageConsumer
-	if len(r.Delays) > 0 {
+	var consumer SaramaMessageConsumer = c.Consumer
+	if len(c.Delays) > 0 {
 		nextTopic := baseTopic + "-dead"
-		if idx+1 < len(r.Delays) {
-			nextTopic = baseTopic + "-retry-" + r.Delays[idx+1].String()
+		if idx+1 < len(c.Delays) {
+			nextTopic = baseTopic + "-retry-" + c.Delays[idx+1].String()
 		}
-		consumer = &CascadingConsumer{
+		consumer = &CascadingSaramaMessageConsumer{
 			Consumer:  consumer,
 			NextTopic: nextTopic,
 			Producer:  producer,
-			Logger:    r.Logger,
+			Logger:    c.Logger,
 		}
 	}
 	if delay > 0 {
 		consumer = &NotBeforeConsumer{
 			Consumer: consumer,
-			Logger:   r.Logger,
+			Logger:   c.Logger,
 		}
 	}
 
-	handler := NewSaramaConsumerGroupHandler(r.Logger, consumer, r.ConsumptionTimeout)
+	handler := NewSaramaConsumerGroupHandler(c.Logger, consumer, c.ConsumptionTimeout)
 	topic := baseTopic
 	if delay > 0 {
 		topic += "-retry-" + delay.String()
 	}
-	r.Logger.Log(ctx, slog.LevelDebug, "creating consumer", "topic", topic)
+	c.Logger.Log(ctx, slog.LevelDebug, "creating consumer", "topic", topic)
 
-	return NewSaramaEventsConsumer(group, handler, topic), nil
+	return NewSaramaConsumerGroupManager(group, handler, topic), nil
 }
 
 // NotBeforeConsumer delays consumption until a specified time.
@@ -351,108 +376,24 @@ func (c *NotBeforeConsumer) notBeforeFromMsgHeaders(msg *sarama.ConsumerMessage)
 	return time.Time{}, fmt.Errorf("header not found: x-tidepool-not-before")
 }
 
-// CascadingConsumer cascades messages that failed to be consumed to another topic.
-//
-// It also sets an adjustable delay via the "not-before" and "failures" headers so that as
-// the message moves from topic to topic, the time between processing is increased according
-// to [FailuresToDelay].
-type CascadingConsumer struct {
-	Consumer  SaramaMessageConsumer
-	NextTopic string
-	Producer  LimitedAsyncProducer
-	Logger    Logger
-}
-
-func (c *CascadingConsumer) Consume(ctx context.Context, session sarama.ConsumerGroupSession,
-	msg *sarama.ConsumerMessage) (err error) {
-
-	if err := c.Consumer.Consume(ctx, session, msg); err != nil {
-		txnErr := c.withTxn(func() error {
-			select {
-			case <-ctx.Done():
-				if ctxErr := ctx.Err(); !errors.Is(ctxErr, context.Canceled) {
-					return ctxErr
-				}
-				return nil
-			case c.Producer.Input() <- c.cascadeMessage(msg):
-				c.Logger.Log(ctx, slog.LevelInfo, "cascaded", "from", msg.Topic, "to", c.NextTopic)
-				return nil
-			}
-		})
-		if txnErr != nil {
-			c.Logger.Log(ctx, slog.LevelInfo, "Unable to complete cascading transaction", "error", err)
-			return err
+// CappedExponentialBinaryDelay builds delay functions that use exponential
+// binary backoff with a maximum duration.
+func CappedExponentialBinaryDelay(cap time.Duration) func(int) time.Duration {
+	return func(tries int) time.Duration {
+		b := DelayExponentialBinary(tries)
+		if b > cap {
+			return cap
 		}
-	}
-	return nil
-}
-
-// withTxn wraps a function with a transaction that is aborted if an error is returned.
-func (c *CascadingConsumer) withTxn(f func() error) (err error) {
-	if err := c.Producer.BeginTxn(); err != nil {
-		return fmt.Errorf("unable to begin transaction: %w", err)
-	}
-	defer func(err *error) {
-		if err != nil && *err != nil {
-			if abortErr := c.Producer.AbortTxn(); abortErr != nil {
-				c.Logger.Log(nil, slog.LevelInfo, "Unable to abort transaction", "error", abortErr)
-			}
-			return
-		}
-		if commitErr := c.Producer.CommitTxn(); commitErr != nil {
-			c.Logger.Log(nil, slog.LevelInfo, "Unable to commit transaction", "error", commitErr)
-		}
-	}(&err)
-	return f()
-}
-
-// cascadeMessage to the next topic.
-func (c *CascadingConsumer) cascadeMessage(msg *sarama.ConsumerMessage) *sarama.ProducerMessage {
-	pHeaders := make([]sarama.RecordHeader, len(msg.Headers))
-	for idx, header := range msg.Headers {
-		pHeaders[idx] = *header
-	}
-	return &sarama.ProducerMessage{
-		Key:     sarama.ByteEncoder(msg.Key),
-		Value:   sarama.ByteEncoder(msg.Value),
-		Topic:   c.NextTopic,
-		Headers: c.updateCascadeHeaders(pHeaders),
+		return b
 	}
 }
 
-// updateCascadeHeaders calculates not before and failures header values.
-//
-// Existing not before and failures headers will be dropped in place of the new ones.
-func (c *CascadingConsumer) updateCascadeHeaders(headers []sarama.RecordHeader) []sarama.RecordHeader {
-	failures := 0
-	notBefore := time.Now()
-
-	keep := make([]sarama.RecordHeader, 0, len(headers))
-	for _, header := range headers {
-		switch {
-		case bytes.Equal(header.Key, HeaderNotBefore):
-			continue // Drop this header, we'll add a new version below.
-		case bytes.Equal(header.Key, HeaderFailures):
-			parsed, err := strconv.ParseInt(string(header.Value), 10, 32)
-			if err != nil {
-				c.Logger.Log(nil, slog.LevelInfo, "Unable to parse consumption failures count", "error", err)
-			} else {
-				failures = int(parsed)
-				notBefore = notBefore.Add(FailuresToDelay[failures])
-			}
-			continue // Drop this header, we'll add a new version below.
-		}
-		keep = append(keep, header)
-	}
-
-	keep = append(keep, sarama.RecordHeader{
-		Key:   HeaderNotBefore,
-		Value: []byte(notBefore.Format(NotBeforeTimeFormat)),
-	})
-	keep = append(keep, sarama.RecordHeader{
-		Key:   HeaderFailures,
-		Value: []byte(strconv.Itoa(failures + 1)),
-	})
-
-	return keep
+// LimitedAsyncProducer restricts the [sarama.AsyncProducer] interface to ensure that its
+// recipient isn't able to call Close(), thereby opening the potential for a panic when
+// writing to a closed channel.
+type LimitedAsyncProducer interface {
+	AbortTxn() error
+	BeginTxn() error
+	CommitTxn() error
+	Input() chan<- *sarama.ProducerMessage
 }

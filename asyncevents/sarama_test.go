@@ -21,7 +21,7 @@ func TestSaramaAsyncEventsConsumerLifecycle(s *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		handler := &nullSaramaConsumerGroupHandler{}
-		eventsConsumer := NewSaramaEventsConsumer(consumerGroup, handler, topics...)
+		eventsConsumer := NewSaramaConsumerGroupManager(consumerGroup, handler, topics...)
 		err := launchStart(ctx, t, eventsConsumer)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected nil error, got %v", err)
@@ -31,7 +31,7 @@ func TestSaramaAsyncEventsConsumerLifecycle(s *testing.T) {
 	s.Run("reports errors (that aren't context.Canceled)", func(t *testing.T) {
 		consumerGroup := &erroringSaramaConsumerGroup{err: errTest}
 		handler := &nullSaramaConsumerGroupHandler{}
-		eventsConsumer := NewSaramaEventsConsumer(consumerGroup, handler, topics...)
+		eventsConsumer := NewSaramaConsumerGroupManager(consumerGroup, handler, topics...)
 		err := launchStart(context.Background(), t, eventsConsumer)
 		if !errors.Is(err, errTest) {
 			t.Errorf("expected %s, got %v", errTest, err)
@@ -197,7 +197,7 @@ func ExampleFib() {
 // It uses a channel to know that the goroutine has seen some amount of CPU
 // time, which isn't guaranteed to alleviate the race of calling Start, but in
 // practice seems to be sufficient. Running with -count 10000 had 0 failures.
-func launchStart(ctx context.Context, t testing.TB, ec *SaramaEventsConsumer) (err error) {
+func launchStart(ctx context.Context, t testing.TB, ec *SaramaConsumerGroupManager) (err error) {
 	t.Helper()
 	runReturned := make(chan error)
 	go func() {

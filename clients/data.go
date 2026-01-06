@@ -21,6 +21,7 @@ type (
 	}
 
 	DataSourceArray []*DataSource
+	DataSetArray    []*DataSet
 	//Interface so that we can mock dataClient for tests
 	Data interface {
 		//userID  -- the Tidepool-assigned userID
@@ -28,6 +29,7 @@ type (
 		// returns the Data Sources for the user
 		ListSources(userID string) (DataSourceArray, error)
 		ListSourcesPagination(userID string, p Pagination) (DataSourceArray, error)
+		ListSetsPagination(userID string, p Pagination) (DataSetArray, error)
 		HasAnyData(userID string) (hasData bool, err error)
 	}
 
@@ -59,6 +61,30 @@ type DataSource struct {
 	CreatedTime       *time.Time           `json:"createdTime,omitempty"`
 	ModifiedTime      *time.Time           `json:"modifiedTime,omitempty"`
 	Revision          *int                 `json:"revision,omitempty"`
+}
+
+type DataSet struct {
+	ByUser              *string    `json:"byUser,omitempty"`
+	ClockDriftOffset    *int       `json:"clockDriftOffset,omitempty"`
+	ConversionOffset    *int       `json:"conversionOffset,omitempty"`
+	CreatedTime         *time.Time `json:"createdTime,omitempty"`
+	CreatedUserID       *string    `json:"createdUserId,omitempty"`
+	DeletedTime         *time.Time `json:"deletedTime,omitempty"`
+	DeletedUserID       *string    `json:"deletedUserId,omitempty"`
+	DeviceID            *string    `json:"deviceId,omitempty"`
+	DeviceManufacturers *[]string  `json:"deviceManufacturers,omitempty"`
+	DeviceModel         *string    `json:"deviceModel,omitempty"`
+	DeviceSerialNumber  *string    `json:"deviceSerialNumber,omitempty"`
+	DeviceTags          *[]string  `json:"deviceTags,omitempty"`
+	DeviceTime          *string    `json:"deviceTime,omitempty"`
+	ID                  *string    `json:"id,omitempty"`
+	ModifiedTime        *time.Time `json:"modifiedTime,omitempty"`
+	ModifiedUserID      *string    `json:"modifiedUserId,omitempty"`
+	Time                *time.Time `json:"time,omitempty"`
+	TimeProcessing      *string    `json:"timeProcessing,omitempty"`
+	TimeZoneName        *string    `json:"timezone,omitempty"`
+	TimeZoneOffset      *int       `json:"timezoneOffset,omitempty"`
+	UploadID            *string    `json:"uploadId,omitempty"`
 }
 
 func NewDataClientBuilder() *dataClientBuilder {
@@ -120,14 +146,45 @@ func (client *DataClient) ListSourcesPagination(userID string, p Pagination) (Da
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 200 {
+	if res.StatusCode == http.StatusOK {
 		retVal := DataSourceArray{}
 		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
 			log.Println(err)
 			return nil, &status.StatusError{status.NewStatus(500, "ListSources Unable to parse response.")}
 		}
 		return retVal, nil
-	} else if res.StatusCode == 404 {
+	} else if res.StatusCode == http.StatusNotFound {
+		return nil, nil
+	} else {
+		return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+	}
+}
+
+func (client *DataClient) ListSetsPagination(userID string, p Pagination) (DataSetArray, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known data hosts")
+	}
+	host.Path = path.Join(host.Path, "v1", "users", userID, "data_sets")
+	modifyURLWithPagination(host, p)
+
+	req, _ := http.NewRequest(http.MethodGet, host.String(), nil)
+	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusOK {
+		retVal := DataSetArray{}
+		if err := json.NewDecoder(res.Body).Decode(&retVal); err != nil {
+			log.Println(err)
+			return nil, &status.StatusError{status.NewStatus(500, "ListSets Unable to parse response.")}
+		}
+		return retVal, nil
+	} else if res.StatusCode == http.StatusNotFound {
 		return nil, nil
 	} else {
 		return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
@@ -139,7 +196,14 @@ func (client *DataClient) HasAnyData(userID string) (hasData bool, err error) {
 	if err != nil {
 		return false, err
 	}
-	return len(sources) > 0, nil
+	if len(sources) > 0 {
+		return true, nil
+	}
+	sets, err := client.ListSetsPagination(userID, Pagination{Page: 0, Size: 1})
+	if err != nil {
+		return false, err
+	}
+	return len(sets) > 0, nil
 }
 
 func modifyURLWithPagination(u *url.URL, p Pagination) {

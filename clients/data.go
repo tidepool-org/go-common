@@ -183,7 +183,7 @@ func (client *DataClient) Do(method string, reqBody io.Reader, outResBody any, e
 	return &status.StatusError{status.NewStatusf(res.StatusCode, "Unexpected response code from service[%s]", req.URL)}
 }
 
-func (client *DataClient) SendClaimAccountReminder(data ClaimAccountReminderData) error {
+func (client *DataClient) ScheduleClaimAccountReminder(data ClaimAccountReminderData) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf(`unable to marshal claim account data: %w`, err)
@@ -192,7 +192,7 @@ func (client *DataClient) SendClaimAccountReminder(data ClaimAccountReminderData
 	return client.Do(http.MethodPost, bytes.NewReader(body), nil, paths...)
 }
 
-func (client *DataClient) SendConnectAccountReminder(data ConnectAccountReminderData) error {
+func (client *DataClient) ScheduleConnectAccountReminder(data ConnectAccountReminderData) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf(`unable to marshal send account reminder data: %w`, err)

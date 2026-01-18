@@ -77,7 +77,7 @@ type DeviceConnectionIssuesData struct {
 	DataSourceState   string `json:"dataSourceState,omitempty"`
 	DataSourceId      string `json:"dataSourceId,omitempty"`
 	EmailTemplate     string `json:"emailTemplate,omitempty"`
-	PatientName       string `json:"patientName,omitempty"`
+	FullName          string `json:"fullName,omitempty"`
 	ProviderName      string `json:"providerName,omitempty"`
 	RestrictedTokenId string `json:"restrictedTokenId,omitempty"`
 	UserId            string `json:"userId,omitempty"`

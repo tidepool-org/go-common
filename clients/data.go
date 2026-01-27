@@ -161,7 +161,10 @@ func (client *DataClient) Do(method string, reqBody io.Reader, outResBody any, e
 	}
 	host.Path = path.Join(append([]string{host.Path}, elems...)...)
 
-	req, _ := http.NewRequest(method, host.String(), reqBody)
+	req, err := http.NewRequest(method, host.String(), reqBody)
+	if err != nil {
+		return err
+	}
 	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
 
 	res, err := client.httpClient.Do(req)

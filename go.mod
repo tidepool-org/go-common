@@ -1,6 +1,6 @@
 module github.com/tidepool-org/go-common
 
-go 1.24.1
+go 1.25.7
 
 require (
 	github.com/IBM/sarama v1.45.1

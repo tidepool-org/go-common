@@ -1,7 +1,10 @@
 package clients
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -51,6 +54,33 @@ type DataSource struct {
 	CreatedTime       *time.Time           `json:"createdTime,omitempty"`
 	ModifiedTime      *time.Time           `json:"modifiedTime,omitempty"`
 	Revision          *int                 `json:"revision,omitempty"`
+}
+
+type ClaimAccountReminderData struct {
+	ClinicId   string    `json:"clinicId,omitempty"`
+	UserId     string    `json:"userId,omitempty"`
+	WhenToSend time.Time `json:"whenToSend,omitzero"`
+}
+
+type ConnectAccountReminderData struct {
+	ClinicId          string    `json:"clinicId,omitempty"`
+	Email             string    `json:"email,omitempty"`
+	EmailTemplate     string    `json:"emailTemplate,omitempty"`
+	PatientName       string    `json:"patientName,omitempty"`
+	ProviderName      string    `json:"providerName,omitempty"`
+	RestrictedTokenId string    `json:"restrictedTokenId,omitempty"`
+	UserId            string    `json:"userId,omitempty"`
+	WhenToSend        time.Time `json:"whenToSend,omitzero"`
+}
+
+type DeviceConnectionIssuesData struct {
+	DataSourceState   string `json:"dataSourceState,omitempty"`
+	DataSourceId      string `json:"dataSourceId,omitempty"`
+	EmailTemplate     string `json:"emailTemplate,omitempty"`
+	FullName          string `json:"fullName,omitempty"`
+	ProviderName      string `json:"providerName,omitempty"`
+	RestrictedTokenId string `json:"restrictedTokenId,omitempty"`
+	UserId            string `json:"userId,omitempty"`
 }
 
 func NewDataClientBuilder() *dataClientBuilder {
@@ -119,6 +149,68 @@ func (client *DataClient) ListSources(userID string) (DataSourceArray, error) {
 	} else {
 		return nil, &status.StatusError{status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
 	}
+}
+
+// Do issues a method request to the client configured host w/ a path of the
+// slash concatenation of elems. It takes an optional reqBody for
+// the request body and optional outResBody for the response.
+func (client *DataClient) Do(method string, reqBody io.Reader, outResBody any, elems ...string) error {
+	host := client.getHost()
+	if host == nil {
+		return errors.New("No known data hosts")
+	}
+	host.Path = path.Join(append([]string{host.Path}, elems...)...)
+
+	req, err := http.NewRequest(method, host.String(), reqBody)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 200 && res.StatusCode < 300 {
+		if outResBody != nil {
+			if err := json.NewDecoder(res.Body).Decode(&outResBody); err != nil {
+				log.Println(err)
+				return &status.StatusError{status.NewStatus(500, "Unable to parse client response.")}
+			}
+			return nil
+		}
+		return nil
+	}
+	return &status.StatusError{status.NewStatusf(res.StatusCode, "Unexpected response code from service[%s]", req.URL)}
+}
+
+func (client *DataClient) ScheduleClaimAccountReminder(data ClaimAccountReminderData) error {
+	body, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf(`unable to marshal claim account data: %w`, err)
+	}
+	paths := []string{"v1", "notifications", "account", "claims"}
+	return client.Do(http.MethodPost, bytes.NewReader(body), nil, paths...)
+}
+
+func (client *DataClient) ScheduleConnectAccountReminder(data ConnectAccountReminderData) error {
+	body, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf(`unable to marshal send account reminder data: %w`, err)
+	}
+	paths := []string{"v1", "notifications", "account", "connections"}
+	return client.Do(http.MethodPost, bytes.NewReader(body), nil, paths...)
+}
+
+func (client *DataClient) SendDeviceConnectionIssuesNotification(data DeviceConnectionIssuesData) error {
+	body, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf(`unable to marshal device connection issues data: %w`, err)
+	}
+	paths := []string{"v1", "notifications", "device", "issues"}
+	return client.Do(http.MethodPost, bytes.NewReader(body), nil, paths...)
 }
 
 func (client *DataClient) getHost() *url.URL {

@@ -10,9 +10,13 @@ type (
 		expectedError       error
 	}
 	SeagullMock struct{}
+	DataMock    struct {
+		dataSources map[string]DataSourceArray
+		dataSets    map[string]DataSetArray
+	}
 )
 
-//A mock of the Gatekeeper interface
+// A mock of the Gatekeeper interface
 func NewGatekeeperMock(expectedPermissions Permissions, expectedError error) *GatekeeperMock {
 	return &GatekeeperMock{expectedPermissions, expectedError}
 }
@@ -45,7 +49,7 @@ func (mock *GatekeeperMock) SetPermissions(userID, groupID string, permissions P
 	return Permissions{userID: Allowed}, nil
 }
 
-//A mock of the Seagull interface
+// A mock of the Seagull interface
 func NewSeagullMock() *SeagullMock {
 	return &SeagullMock{}
 }
@@ -61,4 +65,33 @@ func (mock *SeagullMock) GetCollection(userID, collectionName, token string, v i
 
 func (mock *SeagullMock) UpdateCollection(userID, collectionName, token string, v interface{}) error {
 	return nil
+}
+
+func NewDataMock(userDataSources map[string]DataSourceArray, userDataSets map[string]DataSetArray) *DataMock {
+	if userDataSources == nil {
+		userDataSources = map[string]DataSourceArray{}
+	}
+	if userDataSets == nil {
+		userDataSets = map[string]DataSetArray{}
+	}
+	return &DataMock{
+		dataSources: userDataSources,
+		dataSets:    userDataSets,
+	}
+}
+
+func (m *DataMock) ListSources(userID string) (DataSourceArray, error) {
+	return m.dataSources[userID], nil
+}
+
+func (m *DataMock) ListSourcesPagination(userID string, p Pagination) (DataSourceArray, error) {
+	return m.dataSources[userID], nil
+}
+
+func (m *DataMock) ListSetsPagination(userID string, p Pagination) (DataSetArray, error) {
+	return m.dataSets[userID], nil
+}
+
+func (m *DataMock) HasAnyData(userID string) (hasData bool, err error) {
+	return len(m.dataSets[userID]) > 0, nil
 }

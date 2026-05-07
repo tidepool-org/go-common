@@ -17,6 +17,11 @@ import (
 )
 
 type (
+	Pagination struct {
+		Page int `json:"page,omitempty"`
+		Size int `json:"size,omitempty"`
+	}
+
 	DataSourceArray []*DataSource
 	//Interface so that we can mock dataClient for tests
 	Data interface {
@@ -24,6 +29,8 @@ type (
 		//
 		// returns the Data Sources for the user
 		ListSources(userID string) (DataSourceArray, error)
+		ListSourcesPagination(userID string, p Pagination) (DataSourceArray, error)
+		HasAnyData(userID string) (hasData bool, err error)
 	}
 
 	DataClient struct {
@@ -122,13 +129,18 @@ func (b *dataClientBuilder) Build() *DataClient {
 }
 
 func (client *DataClient) ListSources(userID string) (DataSourceArray, error) {
+	return client.ListSourcesPagination(userID, Pagination{Page: 0, Size: 0})
+}
+
+func (client *DataClient) ListSourcesPagination(userID string, p Pagination) (DataSourceArray, error) {
 	host := client.getHost()
 	if host == nil {
 		return nil, errors.New("No known data hosts")
 	}
 	host.Path = path.Join(host.Path, "v1", "users", userID, "data_sources")
+	modifyURLWithPagination(host, p)
 
-	req, _ := http.NewRequest("GET", host.String(), nil)
+	req, _ := http.NewRequest(http.MethodGet, host.String(), nil)
 	req.Header.Add("x-tidepool-session-token", client.tokenProvider.TokenProvide())
 
 	res, err := client.httpClient.Do(req)
@@ -211,6 +223,25 @@ func (client *DataClient) SendDeviceConnectionIssuesNotification(data DeviceConn
 	}
 	paths := []string{"v1", "notifications", "device", "issues"}
 	return client.Do(http.MethodPost, bytes.NewReader(body), nil, paths...)
+}
+
+func (client *DataClient) HasAnyData(userID string) (hasData bool, err error) {
+	sources, err := client.ListSourcesPagination(userID, Pagination{Page: 0, Size: 1})
+	if err != nil {
+		return false, err
+	}
+	return len(sources) > 0, nil
+}
+
+func modifyURLWithPagination(u *url.URL, p Pagination) {
+	p.Page = max(p.Page, 0)
+	p.Size = max(p.Size, 0)
+	if p.Page > 0 || p.Size > 0 {
+		qsValues := u.Query()
+		qsValues.Set("page", fmt.Sprintf("%v", p.Page))
+		qsValues.Set("size", fmt.Sprintf("%v", p.Size))
+		u.RawQuery = qsValues.Encode()
+	}
 }
 
 func (client *DataClient) getHost() *url.URL {

@@ -4,6 +4,8 @@ import (
 	"log"
 )
 
+var _ Client = &ShorelineMockClient{}
+
 type ShorelineMockClient struct {
 	ServerToken string
 }
@@ -56,5 +58,9 @@ func (client *ShorelineMockClient) CreateCustodialUserForClinic(clinicId string,
 }
 
 func (client *ShorelineMockClient) DeleteUserSessions(userId string, token string) error {
+	return nil
+}
+
+func (client *ShorelineMockClient) DeleteUser(userID, token string) error {
 	return nil
 }

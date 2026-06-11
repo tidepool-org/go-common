@@ -59,13 +59,29 @@ type ShorelineClientConfig struct {
 
 // UserData is the data structure returned from a successful Login query.
 type UserData struct {
-	UserID         string   `json:"userid,omitempty"`         // the tidepool-assigned user ID
-	Username       string   `json:"username,omitempty"`       // the user-assigned name for the login (usually an email address)
-	Emails         []string `json:"emails,omitempty"`         // the array of email addresses associated with this account
-	PasswordExists bool     `json:"passwordExists,omitempty"` // Does a password exist for the user?
-	Roles          []string `json:"roles,omitempty"`          // User roles
-	EmailVerified  bool     `json:"emailVerified,omitempty"`  // the user has verified the email used as part of signup
-	TermsAccepted  string   `json:"termsAccepted,omitempty"`  // When were the terms accepted
+	UserID          string               `json:"userid,omitempty"`          // the tidepool-assigned user ID
+	Username        string               `json:"username,omitempty"`        // the user-assigned name for the login (usually an email address)
+	Emails          []string             `json:"emails,omitempty"`          // the array of email addresses associated with this account
+	PasswordExists  bool                 `json:"passwordExists,omitempty"`  // Does a password exist for the user?
+	Roles           []string             `json:"roles,omitempty"`           // User roles
+	EmailVerified   bool                 `json:"emailVerified,omitempty"`   // the user has verified the email used as part of signup
+	TermsAccepted   string               `json:"termsAccepted,omitempty"`   // When were the terms accepted
+	SecurityProfile *UserSecurityProfile `json:"securityProfile,omitempty"` // the user's current security posture; omitted for unmigrated users
+}
+
+// UserSecurityProfile is the user's current security posture, as reported by shoreline from
+// Keycloak: whether multi-factor authentication is enabled, the external identity providers
+// linked to the account, and the time of the last login.
+type UserSecurityProfile struct {
+	MfaEnabled        bool                   `json:"mfaEnabled"`
+	IdentityProviders []UserIdentityProvider `json:"identityProviders,omitempty"`
+	LastLoginTime     *time.Time             `json:"lastLoginTime,omitempty"`
+}
+
+// UserIdentityProvider is an external identity provider linked to a user account.
+type UserIdentityProvider struct {
+	Alias string `json:"alias"` // the unique alias identifying the identity provider configuration
+	Name  string `json:"name"`  // the display name of the identity provider
 }
 
 // UserUpdate is the data structure for updating of a users details

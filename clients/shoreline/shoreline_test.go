@@ -1,6 +1,7 @@
 package shoreline
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -166,4 +167,45 @@ func TestCreateCustodialUserForClinic(t *testing.T) {
 		t.Errorf("Bad userData object[%+v]", ud)
 	}
 
+}
+
+func TestGetUser_UnmarshalsSecurityProfile(t *testing.T) {
+	body := []byte(`{
+		"userid": "1234567890",
+		"emailVerified": true,
+		"securityProfile": {
+			"mfaEnabled": true,
+			"identityProviders": [{"alias": "google", "name": "Google"}],
+			"lastLoginTime": "2026-06-11T10:00:00Z"
+		}
+	}`)
+
+	var user UserData
+	if err := json.Unmarshal(body, &user); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.SecurityProfile == nil {
+		t.Fatal("expected security profile to be set")
+	}
+	if !user.SecurityProfile.MfaEnabled {
+		t.Error("expected mfaEnabled to be true")
+	}
+	if len(user.SecurityProfile.IdentityProviders) != 1 ||
+		user.SecurityProfile.IdentityProviders[0] != (UserIdentityProvider{Alias: "google", Name: "Google"}) {
+		t.Errorf("unexpected identity providers: %+v", user.SecurityProfile.IdentityProviders)
+	}
+	expected := time.Date(2026, 6, 11, 10, 0, 0, 0, time.UTC)
+	if user.SecurityProfile.LastLoginTime == nil || !user.SecurityProfile.LastLoginTime.Equal(expected) {
+		t.Errorf("unexpected last login time: %v", user.SecurityProfile.LastLoginTime)
+	}
+}
+
+func TestGetUser_OmitsSecurityProfileWhenAbsent(t *testing.T) {
+	var user UserData
+	if err := json.Unmarshal([]byte(`{"userid": "1234567890", "emailVerified": true}`), &user); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.SecurityProfile != nil {
+		t.Fatal("expected security profile to be nil when absent")
+	}
 }

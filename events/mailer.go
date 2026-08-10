@@ -9,9 +9,19 @@ const (
 )
 
 type SendEmailTemplateEvent struct {
-	Recipient string            `json:"recipient"`
-	Template  string            `json:"template"`
-	Variables map[string]string `json:"variables"`
+	Recipient   string            `json:"recipient"`
+	Template    string            `json:"template"`
+	Variables   map[string]string `json:"variables"`
+	Attachments []EmailAttachment `json:"attachments"`
+}
+
+type EmailAttachment struct {
+	// Mime type
+	ContentType string `json:"content_type"`
+	// Data is base64 encoded representation of the data
+	Data string `json:"data"`
+	// Filename is the filename of the attachment
+	Filename string `json:"filename"`
 }
 
 func (s SendEmailTemplateEvent) GetEventType() string {

@@ -51,6 +51,7 @@ type DataSource struct {
 	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty"`
 	LatestDataTime    *time.Time           `json:"latestDataTime,omitempty"`
 	LastImportTime    *time.Time           `json:"lastImportTime,omitempty"`
+	ConnectedTime     *time.Time           `json:"connectedTime,omitempty"`
 	CreatedTime       *time.Time           `json:"createdTime,omitempty"`
 	ModifiedTime      *time.Time           `json:"modifiedTime,omitempty"`
 	Revision          *int                 `json:"revision,omitempty"`

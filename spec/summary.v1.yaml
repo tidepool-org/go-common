@@ -253,8 +253,6 @@ components:
           $ref: '#/components/schemas/glucoseRange.v5'
         inVeryHigh:
           $ref: '#/components/schemas/glucoseRange.v5'
-        inExtremeHigh:
-          $ref: '#/components/schemas/glucoseRange.v5'
         inAnyLow:
           $ref: '#/components/schemas/glucoseRange.v5'
         inAnyHigh:

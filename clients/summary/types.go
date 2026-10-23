@@ -81,9 +81,6 @@ type GlucosePeriodV5 struct {
 	// InAnyLow Metrics for a particular range of glucose values
 	InAnyLow GlucoseRangeV5 `json:"inAnyLow,omitempty"`
 
-	// InExtremeHigh Metrics for a particular range of glucose values
-	InExtremeHigh GlucoseRangeV5 `json:"inExtremeHigh,omitempty"`
-
 	// InHigh Metrics for a particular range of glucose values
 	InHigh GlucoseRangeV5 `json:"inHigh,omitempty"`
 
@@ -127,9 +124,6 @@ type GlucosePeriodDeltaV5 struct {
 
 	// InAnyLow Metrics for a particular range of glucose values
 	InAnyLow GlucoseRangeV5 `json:"inAnyLow,omitempty"`
-
-	// InExtremeHigh Metrics for a particular range of glucose values
-	InExtremeHigh GlucoseRangeV5 `json:"inExtremeHigh,omitempty"`
 
 	// InHigh Metrics for a particular range of glucose values
 	InHigh GlucoseRangeV5 `json:"inHigh,omitempty"`
@@ -180,9 +174,6 @@ type GlucoseRangesV5 struct {
 
 	// InAnyLow Metrics for a particular range of glucose values
 	InAnyLow GlucoseRangeV5 `json:"inAnyLow,omitempty"`
-
-	// InExtremeHigh Metrics for a particular range of glucose values
-	InExtremeHigh GlucoseRangeV5 `json:"inExtremeHigh,omitempty"`
 
 	// InHigh Metrics for a particular range of glucose values
 	InHigh GlucoseRangeV5 `json:"inHigh,omitempty"`

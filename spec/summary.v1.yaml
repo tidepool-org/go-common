@@ -70,11 +70,6 @@ components:
       type: apiKey
       name: X-Tidepool-Session-Token
       in: header
-    serverToken:
-      description: Tidepool Server Token
-      type: apiKey
-      name: X-Tidepool-Session-Token
-      in: header
   parameters:
     summaryType.v5:
       name: summaryType
@@ -110,10 +105,9 @@ components:
       title: Summary ID
       description: Summary Unique Identifier
       type: string
-      minLength: 24
+      minLength: 0
       maxLength: 24
-      pattern: ^[a-f0-9]{24}$
-      readOnly: true
+      pattern: ^[a-f0-9]{0,24}$
       example: 2fe2488217ee43e1b2e83c2f
     summaryConfig.v1:
       type: object
@@ -335,7 +329,6 @@ components:
           required:
             - hoursWithData
             - daysWithData
-            - averageGlucose
             - glucoseManagementIndicator
             - coefficientOfVariation
             - standardDeviation
@@ -386,7 +379,6 @@ components:
           required:
             - hoursWithData
             - daysWithData
-            - averageGlucose
             - glucoseManagementIndicator
             - coefficientOfVariation
             - standardDeviation

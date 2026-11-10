@@ -90,10 +90,25 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 type ClientInterface interface {
 	// GetSummary request
 	GetSummary(ctx context.Context, summaryType SummaryTypeV5, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SyncSummaries request
+	SyncSummaries(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetSummary(ctx context.Context, summaryType SummaryTypeV5, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetSummaryRequest(c.Server, summaryType, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SyncSummaries(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSyncSummariesRequest(c.Server, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -138,6 +153,40 @@ func NewGetSummaryRequest(server string, summaryType SummaryTypeV5, userId UserI
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSyncSummariesRequest generates requests for SyncSummaries
+func NewSyncSummariesRequest(server string, userId UserId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/summaries/%s/sync", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +239,9 @@ func WithBaseURL(baseURL string) ClientOption {
 type ClientWithResponsesInterface interface {
 	// GetSummaryWithResponse request
 	GetSummaryWithResponse(ctx context.Context, summaryType SummaryTypeV5, userId UserId, reqEditors ...RequestEditorFn) (*GetSummaryResponse, error)
+
+	// SyncSummariesWithResponse request
+	SyncSummariesWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*SyncSummariesResponse, error)
 }
 
 type GetSummaryResponse struct {
@@ -214,6 +266,27 @@ func (r GetSummaryResponse) StatusCode() int {
 	return 0
 }
 
+type SyncSummariesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r SyncSummariesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SyncSummariesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // GetSummaryWithResponse request returning *GetSummaryResponse
 func (c *ClientWithResponses) GetSummaryWithResponse(ctx context.Context, summaryType SummaryTypeV5, userId UserId, reqEditors ...RequestEditorFn) (*GetSummaryResponse, error) {
 	rsp, err := c.GetSummary(ctx, summaryType, userId, reqEditors...)
@@ -221,6 +294,15 @@ func (c *ClientWithResponses) GetSummaryWithResponse(ctx context.Context, summar
 		return nil, err
 	}
 	return ParseGetSummaryResponse(rsp)
+}
+
+// SyncSummariesWithResponse request returning *SyncSummariesResponse
+func (c *ClientWithResponses) SyncSummariesWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*SyncSummariesResponse, error) {
+	rsp, err := c.SyncSummaries(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSyncSummariesResponse(rsp)
 }
 
 // ParseGetSummaryResponse parses an HTTP response from a GetSummaryWithResponse call
@@ -244,6 +326,22 @@ func ParseGetSummaryResponse(rsp *http.Response) (*GetSummaryResponse, error) {
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseSyncSummariesResponse parses an HTTP response from a SyncSummariesWithResponse call
+func ParseSyncSummariesResponse(rsp *http.Response) (*SyncSummariesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SyncSummariesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

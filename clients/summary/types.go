@@ -196,7 +196,7 @@ type GlucoseRangesV5 struct {
 
 // SummaryV5 defines model for summary.v5.
 type SummaryV5 struct {
-	// Config Summary schema version and calculation configuration
+	// Config Summary schema version and calculation configuration. The very low and very high thresholds are omitted when the glycemic range set the summary was computed with has no such boundary, so no reading falls outside it.
 	Config SummaryConfigV1 `json:"config,omitempty"`
 
 	// Dates dates tracked for summary calculation
@@ -220,7 +220,7 @@ type SummaryV5_Periods struct {
 
 // SummaryBaseV5 shared properties of all summaries
 type SummaryBaseV5 struct {
-	// Config Summary schema version and calculation configuration
+	// Config Summary schema version and calculation configuration. The very low and very high thresholds are omitted when the glycemic range set the summary was computed with has no such boundary, so no reading falls outside it.
 	Config SummaryConfigV1 `json:"config,omitempty"`
 
 	// Dates dates tracked for summary calculation
@@ -236,8 +236,11 @@ type SummaryBaseV5 struct {
 	UserId *Tidepooluserid `json:"userId,omitempty"`
 }
 
-// SummaryConfigV1 Summary schema version and calculation configuration
+// SummaryConfigV1 Summary schema version and calculation configuration. The very low and very high thresholds are omitted when the glycemic range set the summary was computed with has no such boundary, so no reading falls outside it.
 type SummaryConfigV1 struct {
+	// GlycemicRangesKey Key of the glycemic range set the summary was computed with (see `glycemicRanges.key` in the clinic API), e.g. `preset:adaStandard`. Absent from summaries stored before this field existed, which were all computed with the standard ranges.
+	GlycemicRangesKey string `json:"glycemicRangesKey,omitempty"`
+
 	// HighGlucoseThreshold Threshold used for determining if a value is high
 	HighGlucoseThreshold float64 `json:"highGlucoseThreshold"`
 
@@ -248,10 +251,10 @@ type SummaryConfigV1 struct {
 	SchemaVersion int `json:"schemaVersion"`
 
 	// VeryHighGlucoseThreshold Threshold used for determining if a value is very high
-	VeryHighGlucoseThreshold float64 `json:"veryHighGlucoseThreshold"`
+	VeryHighGlucoseThreshold *float64 `json:"veryHighGlucoseThreshold,omitempty"`
 
 	// VeryLowGlucoseThreshold Threshold used for determining if a value is very low
-	VeryLowGlucoseThreshold float64 `json:"veryLowGlucoseThreshold"`
+	VeryLowGlucoseThreshold *float64 `json:"veryLowGlucoseThreshold,omitempty"`
 }
 
 // SummaryDatesV5 dates tracked for summary calculation
